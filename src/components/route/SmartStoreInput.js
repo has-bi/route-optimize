@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 
 export default function SmartStoreInput({
   store,
-  onUpdate,
+  onStoreChange,
   onRemove,
   index,
   isCollapsed,
@@ -20,26 +20,24 @@ export default function SmartStoreInput({
     store.coordinates &&
     (store.distributorId || store.distributorId === "0");
 
-  // Handle distributor ID change and auto-fetch store data
-  const handleDistributorIdChange = async (distributorId) => {
-    onUpdate("distributorId", distributorId);
-    setError("");
-    setAutoFilled(false);
+  // Handle manual store search when user clicks "Find Store" button
+  const handleFindStore = async () => {
+    const distributorId = store.distributorId?.trim();
 
-    if (!distributorId || distributorId.trim() === "") {
-      onUpdate("storeName", "");
-      onUpdate("coordinates", "");
+    if (!distributorId) {
+      setError("Masukkan Distributor ID terlebih dahulu");
       return;
     }
 
     if (distributorId === "0") {
-      onUpdate("storeName", "");
-      onUpdate("coordinates", "");
-      setError("Mode manual - isi nama toko dan koordinat");
+      setError("Mode manual - isi nama toko dan koordinat secara manual");
       return;
     }
 
     setLoading(true);
+    setError("");
+    setAutoFilled(false);
+
     try {
       const response = await fetch(
         `/api/stores/${encodeURIComponent(distributorId)}`
@@ -48,28 +46,62 @@ export default function SmartStoreInput({
       if (response.ok) {
         const data = await response.json();
 
+        console.log("🔍 API Response received:", data);
+
         if (data.store) {
-          onUpdate("storeName", data.store.storeName);
-          onUpdate("coordinates", data.store.coordinates);
+          console.log("🔍 Store data found:", {
+            distributorId: data.store.distributorId,
+            storeName: data.store.storeName,
+            coordinates: data.store.coordinates,
+          });
+
+          // ✅ FIXED: Create completely new store object and pass it up
+          const updatedStore = {
+            ...store,
+            distributorId: data.store.distributorId,
+            storeName: data.store.storeName,
+            coordinates: data.store.coordinates,
+          };
+
+          console.log(
+            "🔍 Updated store object being sent to parent:",
+            updatedStore
+          );
+
+          // Send the entire updated store object to parent
+          onStoreChange(updatedStore);
+
           setAutoFilled(true);
           setError("");
         } else {
-          setError("Distributor ID tidak ditemukan - isi manual");
-          onUpdate("storeName", "");
-          onUpdate("coordinates", "");
+          setError("Distributor ID tidak ditemukan - silakan isi manual");
         }
       } else {
-        setError("Gagal mengambil data toko - isi manual");
-        onUpdate("storeName", "");
-        onUpdate("coordinates", "");
+        setError("Gagal mengambil data toko - silakan isi manual");
       }
     } catch (error) {
       console.error("Error fetching store:", error);
-      setError("Gagal mengambil data toko - isi manual");
-      onUpdate("storeName", "");
-      onUpdate("coordinates", "");
+      setError("Gagal mengambil data toko - silakan isi manual");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle field changes
+  const handleFieldChange = (field, value) => {
+    console.log(`🔍 Field change: ${field} = ${value}`);
+
+    const updatedStore = {
+      ...store,
+      [field]: value,
+    };
+
+    console.log("🔍 Updated store after field change:", updatedStore);
+    onStoreChange(updatedStore);
+
+    setError("");
+    if (autoFilled) {
+      setAutoFilled(false);
     }
   };
 
@@ -199,36 +231,50 @@ export default function SmartStoreInput({
       </div>
 
       <div className="space-y-3">
-        {/* Distributor ID Input */}
+        {/* Distributor ID Input with Find Button */}
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">
             Distributor ID
           </label>
-          <div className="relative">
+          <div className="flex gap-2">
             <input
               type="text"
-              placeholder="Masukkan ID atau ketik '0' untuk manual"
+              placeholder="Masukkan Distributor ID atau ketik '0' untuk manual"
               value={store.distributorId || ""}
-              onChange={(e) => handleDistributorIdChange(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              onChange={(e) =>
+                handleFieldChange("distributorId", e.target.value)
+              }
+              disabled={isAutoFilled}
+              className={`flex-1 p-2 border rounded-md text-sm ${
+                isAutoFilled
+                  ? "bg-gray-50 border-gray-200 text-gray-600"
+                  : "border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              }`}
             />
-            {loading && (
-              <div className="absolute right-2 top-2">
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={handleFindStore}
+              disabled={loading || !store.distributorId?.trim() || isAutoFilled}
+              className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium min-w-[80px]"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+              ) : (
+                "Cari"
+              )}
+            </button>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Kosongkan atau ketik "0" untuk isi manual
+            Masukkan ID dan klik "Cari", atau ketik "0" untuk isi manual
           </p>
         </div>
 
-        {/* Auto-fill Status */}
+        {/* Auto-fill Success Status */}
         {autoFilled && (
-          <div className="bg-green-50 border border-green-200 rounded-md p-2">
-            <p className="text-xs text-green-700 flex items-center">
+          <div className="bg-green-50 border border-green-200 rounded-md p-3">
+            <p className="text-sm text-green-700 flex items-center font-medium">
               <svg
-                className="w-3 h-3 mr-1"
+                className="w-4 h-4 mr-2"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -238,8 +284,28 @@ export default function SmartStoreInput({
                   clipRule="evenodd"
                 />
               </svg>
-              Data otomatis terisi dari master data
+              Data toko berhasil ditemukan dan terisi otomatis
             </p>
+            <div className="mt-2 text-xs text-green-600">
+              <div>✓ Distributor ID: {store.distributorId || "EMPTY"}</div>
+              <div>✓ Nama Toko: {store.storeName || "EMPTY"}</div>
+              <div>✓ Koordinat: {store.coordinates || "EMPTY"}</div>
+            </div>
+
+            {!isCollapsed && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAutoFilled(false);
+                  handleFieldChange("distributorId", "");
+                  handleFieldChange("storeName", "");
+                  handleFieldChange("coordinates", "");
+                }}
+                className="mt-2 text-xs text-green-600 hover:text-green-800 underline"
+              >
+                Reset untuk isi manual
+              </button>
+            )}
           </div>
         )}
 
@@ -273,7 +339,7 @@ export default function SmartStoreInput({
             placeholder="Nama toko"
             required
             value={store.storeName || ""}
-            onChange={(e) => onUpdate("storeName", e.target.value)}
+            onChange={(e) => handleFieldChange("storeName", e.target.value)}
             disabled={isAutoFilled}
             className={`w-full p-2 border rounded-md text-sm ${
               isAutoFilled
@@ -293,7 +359,7 @@ export default function SmartStoreInput({
             placeholder="-7.2574719,112.7520883"
             required
             value={store.coordinates || ""}
-            onChange={(e) => onUpdate("coordinates", e.target.value)}
+            onChange={(e) => handleFieldChange("coordinates", e.target.value)}
             disabled={isAutoFilled}
             className={`w-full p-2 border rounded-md text-sm ${
               isAutoFilled
@@ -311,7 +377,7 @@ export default function SmartStoreInput({
             </label>
             <select
               value={store.priority || "B"}
-              onChange={(e) => onUpdate("priority", e.target.value)}
+              onChange={(e) => handleFieldChange("priority", e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="A">Priority A (Tinggi)</option>
@@ -330,7 +396,9 @@ export default function SmartStoreInput({
               min="5"
               max="120"
               value={store.visitTime || 30}
-              onChange={(e) => onUpdate("visitTime", parseInt(e.target.value))}
+              onChange={(e) =>
+                handleFieldChange("visitTime", parseInt(e.target.value))
+              }
               className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>

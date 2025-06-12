@@ -1,3 +1,5 @@
+// ===== FINAL VERSION: ./src/components/route/CreateRouteForm.js =====
+
 "use client";
 
 import { useState } from "react";
@@ -140,20 +142,22 @@ export default function CreateRouteForm() {
     setErrors(newErrors);
   };
 
-  const updateStore = (id, field, value) => {
+  // ✅ FIXED: Handle complete store updates
+  const handleStoreChange = (updatedStore) => {
+    console.log("🔍 Parent received updated store:", updatedStore);
+
     setStores(
       stores.map((store) =>
-        store.id === id ? { ...store, [field]: value } : store
+        store.id === updatedStore.id ? updatedStore : store
       )
     );
 
-    // Clear specific field error
-    const index = stores.findIndex((store) => store.id === id);
-    const errorKey =
-      field === "storeName" ? `store_${index}_name` : `store_${index}_coords`;
-    if (errors[errorKey]) {
+    // Clear errors for this store
+    const index = stores.findIndex((store) => store.id === updatedStore.id);
+    if (index >= 0) {
       const newErrors = { ...errors };
-      delete newErrors[errorKey];
+      delete newErrors[`store_${index}_name`];
+      delete newErrors[`store_${index}_coords`];
       setErrors(newErrors);
     }
   };
@@ -234,6 +238,9 @@ export default function CreateRouteForm() {
                 {errors.startingPoint}
               </p>
             )}
+            <p className="text-xs text-gray-500 mt-1">
+              Format: latitude,longitude (contoh: -7.2574719,112.7520883)
+            </p>
           </div>
 
           <div>
@@ -251,6 +258,9 @@ export default function CreateRouteForm() {
               }
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Jam kerja: 09:00 - 17:00 (istirahat: 12:00 - 13:00)
+            </p>
           </div>
         </div>
       </div>
@@ -295,7 +305,7 @@ export default function CreateRouteForm() {
                 store={store}
                 index={index}
                 isCollapsed={collapsedStores.has(store.id)}
-                onUpdate={(field, value) => updateStore(store.id, field, value)}
+                onStoreChange={handleStoreChange}
                 onRemove={() => removeStore(store.id)}
                 onToggleCollapse={() => toggleStoreCollapse(store.id)}
               />

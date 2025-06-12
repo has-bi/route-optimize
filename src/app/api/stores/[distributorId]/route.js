@@ -21,7 +21,13 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Store not found" }, { status: 404 });
     }
 
-    console.log("Found store:", store.storeName);
+    console.log("Found store data:", {
+      distributorId: store.distributorId,
+      storeName: store.storeName,
+      coordinates: store.coordinates,
+      storeAddress: store.storeAddress,
+    });
+
     return NextResponse.json({ store });
   } catch (error) {
     console.error("Error getting store by distributor ID:", error);

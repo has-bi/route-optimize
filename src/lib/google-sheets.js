@@ -37,7 +37,7 @@ async function getSheetsClient() {
   }
 }
 
-// Transform YouVit raw data to our standardized format (Simplified)
+// Transform YouVit raw data to our standardized format (Simplified with debugging)
 function transformYouVitData(row) {
   // Your sheet columns:
   // A=rank, B=outlet_id, C=distributor_id, D=outlet_name, E=outlet_types,
@@ -46,12 +46,17 @@ function transformYouVitData(row) {
   // O=latitude, P=longitude
 
   const distributorId = row[2] || "";
-  const outletName = row[3] || "";
+  const outletName = row[3] || ""; // Column D
   const outletTypes = row[4] || "";
   const area = row[11] || "";
   const region = row[12] || "";
-  const latitude = parseFloat(row[14]) || 0;
-  const longitude = parseFloat(row[15]) || 0;
+  const latitude = parseFloat(row[14]) || 0; // Column O
+  const longitude = parseFloat(row[15]) || 0; // Column P
+
+  // Debug logging
+  console.log("Transforming row for distributor:", distributorId);
+  console.log("Raw outlet_name (column D):", outletName);
+  console.log("Raw coordinates - lat:", latitude, "lng:", longitude);
 
   // Build coordinates string
   const coordinates = latitude && longitude ? `${latitude},${longitude}` : "";
@@ -60,9 +65,9 @@ function transformYouVitData(row) {
   const status =
     outletName && coordinates && distributorId ? "active" : "inactive";
 
-  return {
+  const transformedStore = {
     distributorId: distributorId.toString(),
-    storeName: outletName,
+    storeName: outletName, // This should be the outlet_name from column D
     storeAddress: `${area}, ${region}`.replace(/^,\s*|,\s*$/g, ""), // Clean up empty parts
     coordinates,
     priority: "B", // Default priority - user can change manually
@@ -72,6 +77,9 @@ function transformYouVitData(row) {
     region,
     area,
   };
+
+  console.log("Transformed store:", transformedStore);
+  return transformedStore;
 }
 
 // Remove complex calculation functions - keep it simple
