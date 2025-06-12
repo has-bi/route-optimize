@@ -1,68 +1,11 @@
-import { auth } from "../../../../../auth.js";
-import { PrismaClient } from "@prisma/client";
-import { NextResponse } from "next/server";
+// src/lib/route-optimizer.js - Fixed Route Optimization Algorithm
 
-const prisma = new PrismaClient();
-
-// GET /api/routes/[id] - Get specific route
-export async function GET(request, { params }) {
-  try {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const route = await prisma.route.findFirst({
-      where: {
-        id: params.id,
-        userId: session.user.id,
-      },
-      include: {
-        stores: {
-          orderBy: { visitOrder: "asc" },
-        },
-      },
-    });
-
-    if (!route) {
-      return NextResponse.json({ error: "Route not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(route);
-  } catch (error) {
-    console.error("Error fetching route:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/routes/[id] - Delete route
-export async function DELETE(request, { params }) {
-  try {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await prisma.route.deleteMany({
-      where: {
-        id: params.id,
-        userId: session.user.id,
-      },
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting route:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
+/**
+ * Calculate distance between two points using Haversine formula
+ * @param {Object} point1 - {lat, lng}
+ * @param {Object} point2 - {lat, lng}
+ * @returns {number} Distance in kilometers
+ */
 export function calculateDistance(point1, point2) {
   const R = 6371; // Radius of Earth in kilometers
   const dLat = ((point2.lat - point1.lat) * Math.PI) / 180;
@@ -77,30 +20,38 @@ export function calculateDistance(point1, point2) {
   return R * c;
 }
 
+/**
+ * Parse coordinate string to lat/lng object
+ * @param {string} coordinates - "lat,lng" format
+ * @returns {Object} {lat, lng}
+ */
 export function parseCoordinates(coordinates) {
-  const [lat, lng] = coordinates.split(",").map(Number);
-  return { lat, lng };
+  try {
+    const [lat, lng] = coordinates.split(",").map(Number);
+    if (isNaN(lat) || isNaN(lng)) {
+      throw new Error("Invalid coordinates format");
+    }
+    return { lat, lng };
+  } catch (error) {
+    throw new Error(`Failed to parse coordinates: ${coordinates}`);
+  }
 }
 
-export function formatTime(totalMinutes) {
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${hours.toString().padStart(2, "0")}:${minutes
-    .toString()
-    .padStart(2, "0")}`;
-}
-
-export function addMinutesToTime(timeString, minutes) {
-  const [hours, mins] = timeString.split(":").map(Number);
-  const totalMinutes = hours * 60 + mins + minutes;
-  return formatTime(totalMinutes % (24 * 60));
-}
-
+/**
+ * Convert time string to minutes since midnight
+ * @param {string} timeString - "HH:MM" format
+ * @returns {number} Minutes since midnight
+ */
 export function timeToMinutes(timeString) {
   const [hours, mins] = timeString.split(":").map(Number);
   return hours * 60 + mins;
 }
 
+/**
+ * Convert minutes to formatted time string
+ * @param {number} minutes - Minutes since midnight
+ * @returns {string} "H:MM AM/PM" format
+ */
 export function minutesToTime(minutes) {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
@@ -109,7 +60,40 @@ export function minutesToTime(minutes) {
   return `${displayHours}:${mins.toString().padStart(2, "0")} ${period}`;
 }
 
+/**
+ * Generate Google Maps navigation URL
+ * @param {Object} from - {lat, lng}
+ * @param {Object} to - {lat, lng}
+ * @returns {string} Google Maps URL
+ */
+export function generateMapsUrl(from, to) {
+  return `https://www.google.com/maps/dir/${from.lat},${from.lng}/${to.lat},${to.lng}`;
+}
+
+/**
+ * Main route optimization function
+ * Uses distance-first greedy algorithm with priority weighting
+ *
+ * @param {string} startingPoint - "lat,lng" starting coordinates
+ * @param {string} departureTime - "HH:MM" departure time
+ * @param {Array} stores - Array of store objects
+ * @returns {Object} Optimization results
+ */
 export function optimizeRoute(startingPoint, departureTime, stores) {
+  console.log("🚀 Starting route optimization...");
+  console.log("Starting point:", startingPoint);
+  console.log("Departure time:", departureTime);
+  console.log("Number of stores:", stores.length);
+
+  // Constants
+  const WORK_START = 9 * 60; // 09:00 in minutes
+  const WORK_END = 17 * 60; // 17:00 in minutes
+  const LUNCH_START = 12 * 60; // 12:00 in minutes
+  const LUNCH_END = 13 * 60; // 13:00 in minutes
+  const TRAVEL_TIME_PER_KM = 5; // 5 minutes per kilometer
+  const BUFFER_TIME = 5; // 5 minutes for parking/walking
+
+  // Initialize
   const start = parseCoordinates(startingPoint);
   let currentTime = timeToMinutes(departureTime);
   let currentPosition = start;
@@ -119,70 +103,100 @@ export function optimizeRoute(startingPoint, departureTime, stores) {
   const optimizedStores = [];
   const remainingStores = [...stores];
 
-  // Working hours: 09:00 - 17:00, lunch break: 12:00 - 13:00
-  const WORK_END = 17 * 60; // 17:00 in minutes
-  const LUNCH_START = 12 * 60; // 12:00 in minutes
-  const LUNCH_END = 13 * 60; // 13:00 in minutes
-  const TRAVEL_TIME_PER_KM = 5; // minutes
-  const BUFFER_TIME = 5; // minutes for parking/walking
+  console.log("⚙️ Starting optimization loop...");
 
+  // Greedy algorithm: always pick the nearest store considering priority
   while (remainingStores.length > 0) {
     let bestStore = null;
     let bestScore = Infinity;
     let bestIndex = -1;
 
-    // Find nearest store with priority consideration
+    console.log(
+      `🔍 Finding best store from ${remainingStores.length} remaining...`
+    );
+
+    // Find the best store based on distance and priority
     remainingStores.forEach((store, index) => {
-      const storePos = parseCoordinates(store.coordinates);
-      const distance = calculateDistance(currentPosition, storePos);
+      try {
+        const storePos = parseCoordinates(store.coordinates);
+        const distance = calculateDistance(currentPosition, storePos);
 
-      // Priority scoring: A=1, B=2, C=3, D=4
-      const priorityScore = { A: 1, B: 2, C: 3, D: 4 }[store.priority];
+        // Priority scoring: A=1, B=2, C=3, D=4 (lower is better)
+        const priorityScore = { A: 1, B: 2, C: 3, D: 4 }[store.priority] || 2;
 
-      // Distance-first with priority weight
-      const score = distance * 100 + priorityScore * 10;
+        // Score = distance weight + priority weight
+        const score = distance * 100 + priorityScore * 10;
 
-      if (score < bestScore) {
-        bestScore = score;
-        bestStore = store;
-        bestIndex = index;
+        if (score < bestScore) {
+          bestScore = score;
+          bestStore = store;
+          bestIndex = index;
+        }
+      } catch (error) {
+        console.warn(
+          `⚠️ Invalid coordinates for store ${store.storeName}:`,
+          error.message
+        );
       }
     });
 
-    if (!bestStore) break;
+    if (!bestStore) {
+      console.log("❌ No valid stores remaining");
+      break;
+    }
+
+    console.log(
+      `📍 Best store found: ${bestStore.storeName} (Priority ${bestStore.priority})`
+    );
 
     // Calculate travel time and arrival
     const storePos = parseCoordinates(bestStore.coordinates);
     const distance = calculateDistance(currentPosition, storePos);
     const travelTime = Math.ceil(distance * TRAVEL_TIME_PER_KM) + BUFFER_TIME;
 
-    // Check if we can reach and complete visit before work ends
-    const arrivalTime = currentTime + travelTime;
-    const departTime = arrivalTime + bestStore.visitTime;
+    console.log(
+      `📏 Distance: ${distance.toFixed(2)}km, Travel time: ${travelTime}min`
+    );
 
-    // Check lunch break conflict
-    const isLunchConflict =
-      (arrivalTime >= LUNCH_START && arrivalTime < LUNCH_END) ||
-      (departTime > LUNCH_START && departTime <= LUNCH_END);
+    // Calculate arrival and departure times
+    let arrivalTime = currentTime + travelTime;
+    let departTime = arrivalTime + bestStore.visitTime;
 
-    // Adjust for lunch break
-    let adjustedArrivalTime = arrivalTime;
-    let adjustedDepartTime = departTime;
+    console.log(
+      `⏰ Planned arrival: ${minutesToTime(
+        arrivalTime
+      )}, departure: ${minutesToTime(departTime)}`
+    );
 
-    if (isLunchConflict) {
+    // Handle lunch break (12:00 - 13:00)
+    if (arrivalTime < LUNCH_END && departTime > LUNCH_START) {
+      console.log("🍽️ Lunch break conflict detected, adjusting times...");
+
       if (arrivalTime < LUNCH_START) {
         // Can start before lunch, but extends into lunch
-        adjustedDepartTime = LUNCH_END + (departTime - LUNCH_START);
+        departTime = LUNCH_END + (departTime - LUNCH_START);
       } else {
         // Starts during lunch, move to after lunch
-        adjustedArrivalTime = LUNCH_END;
-        adjustedDepartTime = LUNCH_END + bestStore.visitTime;
+        arrivalTime = LUNCH_END;
+        departTime = LUNCH_END + bestStore.visitTime;
       }
+
+      console.log(
+        `⏰ Adjusted arrival: ${minutesToTime(
+          arrivalTime
+        )}, departure: ${minutesToTime(departTime)}`
+      );
     }
 
-    if (adjustedDepartTime > WORK_END) {
-      // Mark as unreachable and remove from remaining
-      remainingStores.splice(bestIndex, 1);
+    // Check if we can complete visit before work ends
+    if (departTime > WORK_END) {
+      console.log(
+        `⏰ Store ${
+          bestStore.storeName
+        } unreachable - would finish at ${minutesToTime(departTime)}`
+      );
+
+      // Mark as unreachable
       optimizedStores.push({
         ...bestStore,
         visitOrder: null,
@@ -191,45 +205,77 @@ export function optimizeRoute(startingPoint, departureTime, stores) {
         departTime: null,
         mapsUrl: null,
       });
+
+      remainingStores.splice(bestIndex, 1);
       continue;
     }
 
     // Add to optimized route
-    totalDistance += distance;
-    totalTime +=
-      travelTime + bestStore.visitTime + (adjustedDepartTime - departTime);
-    currentTime = adjustedDepartTime;
-    currentPosition = storePos;
+    const visitOrder =
+      optimizedStores.filter((s) => s.status === "VISITED").length + 1;
+    const mapsUrl = generateMapsUrl(currentPosition, storePos);
 
-    // Generate Google Maps URL
-    const prevLat = currentPosition.lat;
-    const prevLng = currentPosition.lng;
-    const mapsUrl = `https://www.google.com/maps/dir/${prevLat},${prevLng}/${storePos.lat},${storePos.lng}`;
+    console.log(`✅ Adding store to route (order #${visitOrder})`);
 
     optimizedStores.push({
       ...bestStore,
-      visitOrder:
-        optimizedStores.filter((s) => s.status !== "UNREACHABLE").length + 1,
+      visitOrder,
       status: "VISITED",
-      arrivalTime: minutesToTime(adjustedArrivalTime),
-      departTime: minutesToTime(adjustedDepartTime),
-      mapsUrl: mapsUrl,
+      arrivalTime: minutesToTime(arrivalTime),
+      departTime: minutesToTime(departTime),
+      mapsUrl,
     });
 
+    // Update current state
+    totalDistance += distance;
+    totalTime += travelTime + bestStore.visitTime;
+    currentTime = departTime;
+    currentPosition = storePos;
+
+    // Remove from remaining stores
     remainingStores.splice(bestIndex, 1);
   }
+
+  // Handle any remaining stores as unreachable
+  remainingStores.forEach((store) => {
+    console.log(
+      `❌ Marking ${store.storeName} as unreachable (time constraint)`
+    );
+    optimizedStores.push({
+      ...store,
+      visitOrder: null,
+      status: "UNREACHABLE",
+      arrivalTime: null,
+      departTime: null,
+      mapsUrl: null,
+    });
+  });
+
+  const visitedStores = optimizedStores.filter(
+    (s) => s.status === "VISITED"
+  ).length;
+  const unreachableStores = optimizedStores.filter(
+    (s) => s.status === "UNREACHABLE"
+  ).length;
+
+  console.log("🎯 Optimization complete!");
+  console.log(
+    `✅ Visited: ${visitedStores}, ❌ Unreachable: ${unreachableStores}`
+  );
+  console.log(`📏 Total distance: ${totalDistance.toFixed(2)}km`);
+  console.log(`⏱️ Completion time: ${minutesToTime(currentTime)}`);
 
   return {
     optimizedStores,
     summary: {
-      visitedStores: optimizedStores.filter((s) => s.status === "VISITED")
-        .length,
-      unreachableStores: optimizedStores.filter(
-        (s) => s.status === "UNREACHABLE"
-      ).length,
+      visitedStores,
+      unreachableStores,
       totalDistance: Math.round(totalDistance * 100) / 100,
       totalTime,
       completionTime: minutesToTime(currentTime),
     },
+    unreachableStores: optimizedStores.filter(
+      (s) => s.status === "UNREACHABLE"
+    ),
   };
 }
