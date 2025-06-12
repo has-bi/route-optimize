@@ -1,0 +1,127 @@
+// prisma/schema.prisma - Database schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth v5 required tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  accounts Account[]
+  sessions Session[]
+  routes   Route[]
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// Application-specific tables
+enum RouteStatus {
+  DRAFT
+  OPTIMIZED
+  COMPLETED
+}
+
+enum Priority {
+  A
+  B
+  C
+  D
+}
+
+enum StoreStatus {
+  PENDING
+  VISITED
+  UNREACHABLE
+}
+
+model Route {
+  id             String      @id @default(cuid())
+  userId         String      @map("user_id")
+  routeDate      DateTime    @map("route_date")
+  startingPoint  String      @map("starting_point") // "lat,lng"
+  departureTime  String      @map("departure_time") // "09:00"
+  status         RouteStatus @default(DRAFT)
+  totalDistance  Float?      @map("total_distance")
+  totalTime      Int?        @map("total_time") // minutes
+  completionTime String?     @map("completion_time") // "17:00"
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stores RouteStore[]
+
+  @@index([userId, routeDate])
+  @@map("routes")
+}
+
+model RouteStore {
+  id            String      @id @default(cuid())
+  routeId       String      @map("route_id")
+  distributorId String?     @map("distributor_id")
+  storeName     String      @map("store_name")
+  coordinates   String      // "lat,lng"
+  priority      Priority
+  visitTime     Int         @map("visit_time") // minutes
+  visitOrder    Int?        @map("visit_order") // null if unreachable
+  status        StoreStatus @default(PENDING)
+  mapsUrl       String?     @map("maps_url")
+  arrivalTime   String?     @map("arrival_time") // "10:30 AM"
+  departTime    String?     @map("depart_time") // "11:00 AM"
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  route Route @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@index([routeId])
+  @@map("route_stores")
+}
