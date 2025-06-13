@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "../../../../../auth.js";
-import { debugUserDatabase } from "../../../../../auth.js";
+import { auth } from "../../../../auth.js";
+import { debugUserDatabase } from "../../../../auth.js";
 
 export async function GET() {
   try {

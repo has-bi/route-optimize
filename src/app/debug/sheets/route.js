@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { auth } from "../../../../../auth.js";
+import { auth } from "../../../../auth.js";
 import {
   getStoresFromSheet,
   getSheetStats,
-} from "../../../../lib/google-sheets.js";
+} from "../../../lib/google-sheets.js";
 
 // GET /api/debug/sheets - Debug YouVit sheet integration
 export async function GET() {
