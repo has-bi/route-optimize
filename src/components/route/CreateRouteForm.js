@@ -1,4 +1,4 @@
-// ===== FINAL VERSION: ./src/components/route/CreateRouteForm.js =====
+// src/components/route/CreateRouteForm.js - Enhanced with Geolocation
 
 "use client";
 
@@ -9,6 +9,7 @@ import SmartStoreInput from "./SmartStoreInput.js";
 export default function CreateRouteForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
   const [formData, setFormData] = useState({
     routeDate: new Date().toISOString().split("T")[0],
     startingPoint: "",
@@ -17,6 +18,73 @@ export default function CreateRouteForm() {
   const [stores, setStores] = useState([]);
   const [collapsedStores, setCollapsedStores] = useState(new Set());
   const [errors, setErrors] = useState({});
+
+  // Get user's current location
+  const getCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      alert("❌ Geolocation tidak didukung oleh browser Anda");
+      return;
+    }
+
+    setGettingLocation(true);
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => resolve(position),
+          (error) => reject(error),
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000, // Cache for 1 minute
+          }
+        );
+      });
+
+      const { latitude, longitude } = position.coords;
+      const coordinates = `${latitude},${longitude}`;
+
+      console.log("📍 Current location obtained:", coordinates);
+
+      setFormData({ ...formData, startingPoint: coordinates });
+
+      // Clear any existing error
+      if (errors.startingPoint) {
+        const newErrors = { ...errors };
+        delete newErrors.startingPoint;
+        setErrors(newErrors);
+      }
+
+      // Show success feedback
+      const accuracy = Math.round(position.coords.accuracy);
+      alert(
+        `✅ Lokasi berhasil didapat!\n📍 ${coordinates}\n🎯 Akurasi: ±${accuracy}m`
+      );
+    } catch (error) {
+      console.error("Error getting location:", error);
+
+      let errorMessage = "Gagal mendapatkan lokasi. ";
+
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage +=
+            "Izin lokasi ditolak. Silakan aktifkan permission lokasi di browser.";
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage += "Informasi lokasi tidak tersedia.";
+          break;
+        case error.TIMEOUT:
+          errorMessage += "Timeout mendapatkan lokasi. Silakan coba lagi.";
+          break;
+        default:
+          errorMessage += "Silakan isi koordinat secara manual.";
+      }
+
+      alert(`❌ ${errorMessage}`);
+    } finally {
+      setGettingLocation(false);
+    }
+  };
 
   // Validation functions
   const validateCoordinates = (coords) => {
@@ -124,7 +192,6 @@ export default function CreateRouteForm() {
       visitTime: 30,
     };
     setStores([...stores, newStore]);
-    // New stores start expanded
   };
 
   const removeStore = (id) => {
@@ -142,7 +209,6 @@ export default function CreateRouteForm() {
     setErrors(newErrors);
   };
 
-  // ✅ FIXED: Handle complete store updates
   const handleStoreChange = (updatedStore) => {
     console.log("🔍 Parent received updated store:", updatedStore);
 
@@ -216,30 +282,75 @@ export default function CreateRouteForm() {
             <label className="block text-sm font-medium mb-1">
               Titik Mulai (Koordinat)
             </label>
-            <input
-              type="text"
-              required
-              placeholder="-7.2574719,112.7520883"
-              value={formData.startingPoint}
-              onChange={(e) => {
-                setFormData({ ...formData, startingPoint: e.target.value });
-                if (errors.startingPoint) {
-                  const newErrors = { ...errors };
-                  delete newErrors.startingPoint;
-                  setErrors(newErrors);
-                }
-              }}
-              className={`w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.startingPoint ? "border-red-500" : "border-gray-300"
-              }`}
-            />
+
+            {/* Input with Get Location Button */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                required
+                placeholder="-7.2574719,112.7520883"
+                value={formData.startingPoint}
+                onChange={(e) => {
+                  setFormData({ ...formData, startingPoint: e.target.value });
+                  if (errors.startingPoint) {
+                    const newErrors = { ...errors };
+                    delete newErrors.startingPoint;
+                    setErrors(newErrors);
+                  }
+                }}
+                className={`flex-1 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.startingPoint ? "border-red-500" : "border-gray-300"
+                }`}
+              />
+
+              {/* Get Current Location Button */}
+              <button
+                type="button"
+                onClick={getCurrentLocation}
+                disabled={gettingLocation}
+                className="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors min-w-[140px] flex items-center justify-center gap-2"
+                title="Dapatkan lokasi saya saat ini"
+              >
+                {gettingLocation ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span className="hidden sm:inline">Getting...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">Lokasi Saya</span>
+                    <span className="sm:hidden">📍</span>
+                  </>
+                )}
+              </button>
+            </div>
+
             {errors.startingPoint && (
               <p className="text-red-500 text-xs mt-1">
                 {errors.startingPoint}
               </p>
             )}
             <p className="text-xs text-gray-500 mt-1">
-              Format: latitude,longitude (contoh: -7.2574719,112.7520883)
+              Format: latitude,longitude atau klik "Lokasi Saya" untuk otomatis
             </p>
           </div>
 
