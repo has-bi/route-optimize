@@ -146,9 +146,10 @@ function SimpleStoreInput({ store, index, onStoreChange, onRemove }) {
             onChange={(e) => handleFieldChange("priority", e.target.value)}
             className="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="A">A (Tinggi)</option>
-            <option value="B">B (Normal)</option>
-            <option value="C">C (Rendah)</option>
+            <option value="A">A</option>
+            <option value="B">B </option>
+            <option value="C">C </option>
+            <option value="D">D </option>
           </select>
         </div>
         <div>

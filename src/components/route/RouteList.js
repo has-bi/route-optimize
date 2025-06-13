@@ -1,49 +1,58 @@
-// src/components/route/RouteList.js - Enhanced Route List Component
+// src/components/route/RouteList.js - Enhanced for 30+ Users
 
 "use client";
 
 import { useState } from "react";
 
-export default function RouteList({ routes, showAll = true }) {
-  const [filter, setFilter] = useState("all"); // all, draft, optimized, completed
+export default function EnhancedRouteList({ routes, showAll = true }) {
+  const [filter, setFilter] = useState("all");
 
   const getStatusBadge = (status) => {
     const badges = {
-      DRAFT: "bg-gray-100 text-gray-800",
-      OPTIMIZED: "bg-blue-100 text-blue-800",
-      COMPLETED: "bg-green-100 text-green-800",
+      DRAFT: {
+        bg: "bg-orange-100",
+        text: "text-orange-800",
+        border: "border-orange-200",
+        icon: "⚠️",
+      },
+      OPTIMIZED: {
+        bg: "bg-blue-100",
+        text: "text-blue-800",
+        border: "border-blue-200",
+        icon: "✅",
+      },
+      COMPLETED: {
+        bg: "bg-green-100",
+        text: "text-green-800",
+        border: "border-green-200",
+        icon: "🎉",
+      },
     };
 
     const labels = {
-      DRAFT: "Draft",
-      OPTIMIZED: "Dioptimalkan",
+      DRAFT: "Perlu Dioptimalkan",
+      OPTIMIZED: "Siap Dikunjungi",
       COMPLETED: "Selesai",
     };
 
+    const badge = badges[status] || badges.DRAFT;
+
     return (
-      <span
-        className={`px-2 py-1 text-xs font-medium rounded-full ${
-          badges[status] || badges.DRAFT
-        }`}
+      <div
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 font-semibold text-base ${badge.bg} ${badge.text} ${badge.border}`}
       >
-        {labels[status] || status}
-      </span>
+        <span className="text-lg">{badge.icon}</span>
+        <span>{labels[status] || status}</span>
+      </div>
     );
   };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
-      weekday: "short",
+      weekday: "long",
       day: "numeric",
-      month: "short",
+      month: "long",
       year: "numeric",
-    });
-  };
-
-  const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString("id-ID", {
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
@@ -52,7 +61,7 @@ export default function RouteList({ routes, showAll = true }) {
     const date = new Date(dateString);
     const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
 
-    if (diffInHours < 1) return "Baru saja";
+    if (diffInHours < 1) return "Baru dibuat";
     if (diffInHours < 24) return `${diffInHours} jam lalu`;
     if (diffInHours < 48) return "Kemarin";
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)} hari lalu`;
@@ -73,277 +82,348 @@ export default function RouteList({ routes, showAll = true }) {
     completed: routes.filter((r) => r.status === "COMPLETED").length,
   };
 
+  // Empty state with larger, clearer design
   if (routes.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg
-            className="w-8 h-8 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-            />
-          </svg>
+      <div className="text-center py-16 px-6">
+        <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <span className="text-4xl">🗺️</span>
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          Belum ada rute
+        <h3 className="text-2xl font-bold text-gray-900 mb-4">
+          Belum Ada Rute
         </h3>
-        <p className="text-gray-500 mb-6">
-          Buat rute pertama Anda untuk mulai optimasi
+        <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
+          Mulai dengan membuat rute pertama untuk mengoptimalkan kunjungan toko
+          Anda
         </p>
         <a
           href="/dashboard/create"
-          className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition-colors"
+          className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
         >
-          + Buat Rute Baru
+          <span className="text-xl">+</span>
+          <span>Buat Rute Pertama</span>
         </a>
       </div>
     );
   }
 
   return (
-    <div>
-      {/* Filter Tabs (only show if showAll is true and has multiple statuses) */}
+    <div className="space-y-8">
+      {/* Enhanced Filter Tabs */}
       {showAll && routes.length > 1 && (
-        <div className="flex gap-2 mb-6 overflow-x-auto">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-              filter === "all"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            Semua ({filterCounts.all})
-          </button>
-          {filterCounts.draft > 0 && (
+        <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Filter Rute
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => setFilter("draft")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                filter === "draft"
-                  ? "bg-gray-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              onClick={() => setFilter("all")}
+              className={`p-4 rounded-xl font-semibold text-base transition-all border-2 ${
+                filter === "all"
+                  ? "bg-blue-600 text-white border-blue-600 shadow-lg"
+                  : "bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100"
               }`}
             >
-              Draft ({filterCounts.draft})
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-lg">📋</span>
+                <div>
+                  <div>Semua Rute</div>
+                  <div className="text-sm opacity-75">({filterCounts.all})</div>
+                </div>
+              </div>
             </button>
-          )}
-          {filterCounts.optimized > 0 && (
-            <button
-              onClick={() => setFilter("optimized")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                filter === "optimized"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Dioptimalkan ({filterCounts.optimized})
-            </button>
-          )}
-          {filterCounts.completed > 0 && (
-            <button
-              onClick={() => setFilter("completed")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                filter === "completed"
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Selesai ({filterCounts.completed})
-            </button>
-          )}
+
+            {filterCounts.draft > 0 && (
+              <button
+                onClick={() => setFilter("draft")}
+                className={`p-4 rounded-xl font-semibold text-base transition-all border-2 ${
+                  filter === "draft"
+                    ? "bg-orange-600 text-white border-orange-600 shadow-lg"
+                    : "bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-lg">⚠️</span>
+                  <div>
+                    <div>Perlu Optimasi</div>
+                    <div className="text-sm opacity-75">
+                      ({filterCounts.draft})
+                    </div>
+                  </div>
+                </div>
+              </button>
+            )}
+
+            {filterCounts.optimized > 0 && (
+              <button
+                onClick={() => setFilter("optimized")}
+                className={`p-4 rounded-xl font-semibold text-base transition-all border-2 ${
+                  filter === "optimized"
+                    ? "bg-blue-600 text-white border-blue-600 shadow-lg"
+                    : "bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-lg">✅</span>
+                  <div>
+                    <div>Siap Dikunjungi</div>
+                    <div className="text-sm opacity-75">
+                      ({filterCounts.optimized})
+                    </div>
+                  </div>
+                </div>
+              </button>
+            )}
+
+            {filterCounts.completed > 0 && (
+              <button
+                onClick={() => setFilter("completed")}
+                className={`p-4 rounded-xl font-semibold text-base transition-all border-2 ${
+                  filter === "completed"
+                    ? "bg-green-600 text-white border-green-600 shadow-lg"
+                    : "bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-lg">🎉</span>
+                  <div>
+                    <div>Selesai</div>
+                    <div className="text-sm opacity-75">
+                      ({filterCounts.completed})
+                    </div>
+                  </div>
+                </div>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Routes Grid */}
-      <div className="space-y-4">
+      {/* Enhanced Routes List */}
+      <div className="space-y-6">
         {filteredRoutes.map((route) => (
           <a
             key={route.id}
             href={`/dashboard/routes/${route.id}`}
-            className="block p-5 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all"
+            className="block bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all p-6"
           >
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-semibold text-gray-900">
-                    Rute {formatDate(route.routeDate)}
+            {/* Route Header */}
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    {formatDate(route.routeDate)}
                   </h3>
+                  <div className="text-base text-gray-600">
+                    Dibuat {getTimeAgo(route.createdAt)}
+                  </div>
+                </div>
+                <div className="flex-shrink-0">
                   {getStatusBadge(route.status)}
                 </div>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <span className="flex items-center gap-1">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                      />
-                    </svg>
-                    {route.stores.length} toko
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    {route.departureTime}
-                  </span>
-                  {route.totalDistance && (
-                    <span className="flex items-center gap-1">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      {route.totalDistance} km
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="text-right text-sm text-gray-500">
-                {getTimeAgo(route.createdAt)}
               </div>
             </div>
 
-            {/* Route Status Details */}
-            {route.status === "OPTIMIZED" && (
-              <div className="flex gap-4 text-xs text-gray-600 bg-blue-50 rounded-md p-3">
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  {
-                    route.stores.filter((s) => s.status === "VISITED").length
-                  }{" "}
-                  dikunjungi
-                </span>
-                {route.stores.filter((s) => s.status === "UNREACHABLE").length >
-                  0 && (
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                    {
-                      route.stores.filter((s) => s.status === "UNREACHABLE")
-                        .length
-                    }{" "}
-                    tidak terjangkau
+            {/* Route Stats */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <span className="text-2xl">🏪</span>
+                  <span className="text-2xl font-bold text-gray-900">
+                    {route.stores.length}
                   </span>
-                )}
-                {route.completionTime && (
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    Selesai {route.completionTime}
+                </div>
+                <div className="text-base font-medium text-gray-600">Toko</div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <span className="text-2xl">🕘</span>
+                  <span className="text-xl font-bold text-gray-900">
+                    {route.departureTime}
                   </span>
-                )}
+                </div>
+                <div className="text-base font-medium text-gray-600">
+                  Jam Berangkat
+                </div>
+              </div>
+            </div>
+
+            {/* Priority Distribution */}
+            {route.stores.length > 0 && (
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h4 className="text-base font-semibold text-gray-800 mb-3 text-center">
+                  Distribusi Prioritas Toko
+                </h4>
+                <div className="grid grid-cols-4 gap-2">
+                  {["A", "B", "C", "D"].map((priority) => {
+                    const count = route.stores.filter(
+                      (store) => store.priority === priority
+                    ).length;
+                    const colors = {
+                      A: "bg-red-100 text-red-800 border-red-200",
+                      B: "bg-orange-100 text-orange-800 border-orange-200",
+                      C: "bg-yellow-100 text-yellow-800 border-yellow-200",
+                      D: "bg-blue-100 text-blue-800 border-blue-200",
+                    };
+
+                    return (
+                      <div
+                        key={priority}
+                        className={`border-2 rounded-lg p-2 text-center ${colors[priority]}`}
+                      >
+                        <div className="text-lg font-bold">{count}</div>
+                        <div className="text-sm font-medium">
+                          Kelas {priority}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
+            {/* Total Visit Time Display */}
+            {route.stores.length > 0 && (
+              <div className="bg-purple-50 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-2xl">⏱️</span>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-800">
+                      {route.stores.reduce(
+                        (total, store) => total + (store.visitTime || 30),
+                        0
+                      )}{" "}
+                      menit
+                    </div>
+                    <div className="text-base font-medium text-purple-600">
+                      Total Waktu Kunjungan
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Distance Info (if optimized) */}
+            {route.totalDistance && (
+              <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-2xl">📏</span>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-800">
+                      {route.totalDistance} km
+                    </div>
+                    <div className="text-base font-medium text-blue-600">
+                      Total Jarak
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Status-Specific Messages */}
             {route.status === "DRAFT" && (
-              <div className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md px-3 py-2 flex items-center gap-2">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
-                Belum dioptimalkan - Klik untuk melanjutkan
+              <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">💡</span>
+                  <div>
+                    <div className="text-lg font-semibold text-orange-800">
+                      Siap untuk Dioptimalkan
+                    </div>
+                    <div className="text-base text-orange-700">
+                      Klik untuk mengurutkan toko berdasarkan jarak terpendek
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {route.status === "OPTIMIZED" && (
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🎯</span>
+                    <div>
+                      <div className="text-lg font-semibold text-blue-800">
+                        Rute Sudah Dioptimalkan
+                      </div>
+                      <div className="text-base text-blue-700">
+                        {
+                          route.stores.filter((s) => s.status === "VISITED")
+                            .length
+                        }{" "}
+                        toko akan dikunjungi
+                        {route.stores.filter((s) => s.status === "UNREACHABLE")
+                          .length > 0 &&
+                          `, ${
+                            route.stores.filter(
+                              (s) => s.status === "UNREACHABLE"
+                            ).length
+                          } tidak terjangkau`}
+                      </div>
+                    </div>
+                  </div>
+                  {route.completionTime && (
+                    <div className="text-right">
+                      <div className="text-base font-semibold text-blue-800">
+                        Selesai: {route.completionTime}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {route.status === "COMPLETED" && (
-              <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2 flex items-center gap-2">
-                <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Rute selesai dilaksanakan
+              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🏆</span>
+                  <div>
+                    <div className="text-lg font-semibold text-green-800">
+                      Rute Telah Selesai
+                    </div>
+                    <div className="text-base text-green-700">
+                      Semua toko telah berhasil dikunjungi
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </a>
         ))}
       </div>
 
-      {/* No results for filter */}
+      {/* No Results State */}
       {filteredRoutes.length === 0 && routes.length > 0 && (
-        <div className="text-center py-8">
-          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-6 h-6 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+        <div className="text-center py-12">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-3xl">🔍</span>
           </div>
-          <p className="text-gray-500">
+          <h3 className="text-xl font-bold text-gray-900 mb-3">
+            Tidak Ada Rute Ditemukan
+          </h3>
+          <p className="text-lg text-gray-600 mb-6">
             Tidak ada rute dengan status "
             {filter === "draft"
-              ? "Draft"
+              ? "Perlu Optimasi"
               : filter === "optimized"
-              ? "Dioptimalkan"
+              ? "Siap Dikunjungi"
               : "Selesai"}
             "
           </p>
           <button
             onClick={() => setFilter("all")}
-            className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+            className="px-6 py-3 bg-blue-600 text-white text-lg font-semibold rounded-xl hover:bg-blue-700 transition-colors"
           >
-            Lihat semua rute
+            Lihat Semua Rute
           </button>
         </div>
       )}
 
-      {/* Show pagination or load more if needed */}
+      {/* Pagination Info */}
       {showAll && filteredRoutes.length >= 10 && (
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
+        <div className="bg-gray-50 rounded-xl p-6 text-center">
+          <p className="text-lg font-medium text-gray-700">
             Menampilkan {filteredRoutes.length} dari {routes.length} total rute
           </p>
         </div>
