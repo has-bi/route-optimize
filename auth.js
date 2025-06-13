@@ -3,7 +3,7 @@ import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./src/lib/prisma.js";
 
-// Access control functions
+// Access control functions (same as before)
 function isWhitelistedEmail(email) {
   const whitelistEnv = process.env.EXTERNAL_EMAIL_WHITELIST || "";
   if (!whitelistEnv.trim()) return false;
@@ -39,43 +39,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           response_type: "code",
         },
       },
+      // 🔥 ADD THIS: Allow profile updates
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
 
   session: {
-    strategy: "jwt", // Using JWT to avoid Prisma Edge Runtime issues
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
   },
 
   callbacks: {
     async signIn({ user, account, profile }) {
       try {
-        console.log("🔐 SignIn Callback - Raw Data:");
-        console.log("  User:", JSON.stringify(user, null, 2));
-        console.log("  Account:", JSON.stringify(account, null, 2));
-        console.log("  Profile:", JSON.stringify(profile, null, 2));
+        console.log("🔐 Sign-in attempt:", {
+          email: user.email,
+          name: user.name,
+          provider: account.provider,
+          accountId: account.providerAccountId,
+        });
 
-        const email = user.email?.toLowerCase().trim();
-
-        if (!email) {
-          console.log("❌ No email provided in sign-in");
-          return false;
-        }
-
-        console.log("🔍 Processing email:", email);
+        const email = user.email.toLowerCase().trim();
 
         // Check access control
         if (isCompanyEmail(email)) {
-          console.log("✅ Access granted: Company user -", email);
+          console.log("✅ Company user access granted:", email);
           return true;
         }
 
         if (isWhitelistedEmail(email)) {
-          console.log("✅ Access granted: Whitelisted external user -", email);
+          console.log("✅ Whitelisted external user access granted:", email);
           return true;
         }
 
-        console.log("❌ Access denied:", email, "- Not company or whitelisted");
+        console.log("❌ Access denied:", email);
         return false;
       } catch (error) {
         console.error("💥 Sign-in callback error:", error);
@@ -83,62 +80,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
 
-    async jwt({ token, user, account, trigger }) {
-      console.log("🔑 JWT Callback - Trigger:", trigger);
-
+    async jwt({ token, user, account }) {
       if (user) {
-        console.log("🔑 JWT - Creating token for user:");
-        console.log("  User ID:", user.id);
-        console.log("  User Email:", user.email);
-        console.log("  User Name:", user.name);
-
-        const email = user.email?.toLowerCase().trim();
-
-        // CRITICAL: Store the EXACT email from the user object
+        const email = user.email.toLowerCase().trim();
         token.userId = user.id;
-        token.email = email; // This should be the Google account email
+        token.email = email;
         token.name = user.name;
-        token.image = user.image;
         token.userType = isCompanyEmail(email) ? "COMPANY" : "EXTERNAL";
         token.isCompanyUser = isCompanyEmail(email);
         token.isAdmin = isAdmin(email);
 
-        console.log("🔑 JWT Token created:");
-        console.log("  Token Email:", token.email);
-        console.log("  Token Type:", token.userType);
-        console.log("  Token User ID:", token.userId);
+        console.log("🔑 JWT created for:", email, "Type:", token.userType);
       }
-
       return token;
     },
 
     async session({ session, token }) {
-      console.log("🔒 Session Callback:");
-      console.log("  Token Email:", token.email);
-      console.log("  Session User Email:", session.user?.email);
-
       if (token) {
-        // CRITICAL: Use token data, not session.user
         session.user.id = token.userId;
-        session.user.email = token.email; // Use email from token
+        session.user.email = token.email;
         session.user.name = token.name;
-        session.user.image = token.image;
         session.user.userType = token.userType;
         session.user.isCompanyUser = token.isCompanyUser;
         session.user.isAdmin = token.isAdmin;
 
-        // Add feature flags
         session.user.features = {
           canCreateRoutes: true,
           canViewAnalytics: token.isCompanyUser,
           canAccessMasterData: token.isCompanyUser,
           canManageUsers: token.isAdmin,
         };
-
-        console.log("🔒 Final Session User:");
-        console.log("  Email:", session.user.email);
-        console.log("  Type:", session.user.userType);
-        console.log("  ID:", session.user.id);
       }
 
       return session;
@@ -152,96 +123,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   events: {
     async signIn({ user, account, isNewUser }) {
-      console.log(
-        `✅ Event - User signed in: ${user.email} (new: ${isNewUser})`
-      );
+      console.log(`✅ User signed in: ${user.email} (new: ${isNewUser})`);
 
-      // Check if this creates confusion in database
       try {
-        console.log("💾 Saving user to database...");
-
-        const savedUser = await prisma.user.upsert({
-          where: { email: user.email }, // Use exact email
+        // Upsert user to ensure database consistency
+        await prisma.user.upsert({
+          where: { email: user.email },
           update: {
             name: user.name,
             image: user.image,
             updatedAt: new Date(),
           },
           create: {
-            email: user.email, // Use exact email
+            email: user.email,
             name: user.name || null,
             image: user.image || null,
             emailVerified: new Date(),
           },
         });
-
-        console.log("💾 User saved to database:");
-        console.log("  DB User ID:", savedUser.id);
-        console.log("  DB User Email:", savedUser.email);
       } catch (error) {
-        console.error("💥 Error saving user to database:", error);
+        console.error("Error saving user to database:", error);
       }
-    },
-
-    async signOut({ session }) {
-      console.log(`👋 User signed out: ${session?.user?.email}`);
     },
   },
 
   debug: process.env.NODE_ENV === "development",
 });
 
-// Debug function to check database state
-export async function debugUserDatabase() {
-  try {
-    console.log("🔍 Current users in database:");
-
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    users.forEach((user) => {
-      console.log(
-        `  - ${user.email} (ID: ${user.id}, Created: ${user.createdAt})`
-      );
-    });
-
-    // Check accounts table for OAuth connections
-    const accounts = await prisma.account.findMany({
-      select: {
-        id: true,
-        userId: true,
-        provider: true,
-        providerAccountId: true,
-        user: {
-          select: {
-            email: true,
-          },
-        },
-      },
-    });
-
-    console.log("🔍 OAuth accounts in database:");
-    accounts.forEach((account) => {
-      console.log(
-        `  - Provider: ${account.provider}, User: ${account.user.email}, Account ID: ${account.providerAccountId}`
-      );
-    });
-
-    return { users, accounts };
-  } catch (error) {
-    console.error("Error debugging database:", error);
-    return null;
-  }
-}
-
-// Utility function for admin dashboard
+// Utility functions remain the same...
 export async function getUserAccessInfo(email) {
   try {
     const emailLower = email.toLowerCase().trim();

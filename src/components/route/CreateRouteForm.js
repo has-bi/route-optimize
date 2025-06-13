@@ -4,25 +4,191 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import SmartStoreInput from "./SmartStoreInput.js";
 
-export default function CreateRouteForm() {
+// Simple Store Input Component
+function SimpleStoreInput({ store, index, onStoreChange, onRemove }) {
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleFindStore = async () => {
+    const distributorId = store.distributorId?.trim();
+    if (!distributorId || distributorId === "0") return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/stores/${encodeURIComponent(distributorId)}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data.store) {
+          onStoreChange({
+            ...store,
+            distributorId: data.store.distributorId,
+            storeName: data.store.storeName,
+            coordinates: data.store.coordinates,
+          });
+          setSuccess(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching store:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFieldChange = (field, value) => {
+    onStoreChange({ ...store, [field]: value });
+    if (success) setSuccess(false);
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <span className="text-lg font-semibold text-gray-900">
+          Toko #{index + 1}
+        </span>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      {/* Distributor ID */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          ID Distributor (opsional)
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Masukkan ID atau kosongkan"
+            value={store.distributorId || ""}
+            onChange={(e) => handleFieldChange("distributorId", e.target.value)}
+            className="flex-1 p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+          <button
+            type="button"
+            onClick={handleFindStore}
+            disabled={loading || !store.distributorId?.trim()}
+            className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 min-w-[80px]"
+          >
+            {loading ? "..." : "Cari"}
+          </button>
+        </div>
+      </div>
+
+      {/* Success Message */}
+      {success && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p className="text-green-800 text-sm">
+            ✓ Data toko berhasil ditemukan
+          </p>
+        </div>
+      )}
+
+      {/* Store Name */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Nama Toko *
+        </label>
+        <input
+          type="text"
+          placeholder="Masukkan nama toko"
+          required
+          value={store.storeName || ""}
+          onChange={(e) => handleFieldChange("storeName", e.target.value)}
+          className="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+      </div>
+
+      {/* Coordinates */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Koordinat *
+        </label>
+        <input
+          type="text"
+          placeholder="-7.2574719,112.7520883"
+          required
+          value={store.coordinates || ""}
+          onChange={(e) => handleFieldChange("coordinates", e.target.value)}
+          className="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+        <p className="text-xs text-gray-500 mt-1">Format: latitude,longitude</p>
+      </div>
+
+      {/* Priority & Visit Time */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Prioritas
+          </label>
+          <select
+            value={store.priority || "B"}
+            onChange={(e) => handleFieldChange("priority", e.target.value)}
+            className="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="A">A (Tinggi)</option>
+            <option value="B">B (Normal)</option>
+            <option value="C">C (Rendah)</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Waktu (menit)
+          </label>
+          <input
+            type="number"
+            min="5"
+            max="120"
+            value={store.visitTime || 30}
+            onChange={(e) =>
+              handleFieldChange("visitTime", parseInt(e.target.value))
+            }
+            className="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function SimpleCreateRouteForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+
   const [formData, setFormData] = useState({
     routeDate: new Date().toISOString().split("T")[0],
     startingPoint: "",
     departureTime: "09:00",
   });
+
   const [stores, setStores] = useState([]);
-  const [collapsedStores, setCollapsedStores] = useState(new Set());
   const [errors, setErrors] = useState({});
 
-  // Get user's current location
+  // Get current location
   const getCurrentLocation = async () => {
     if (!navigator.geolocation) {
-      alert("❌ Geolocation tidak didukung oleh browser Anda");
+      alert("Geolocation tidak didukung");
       return;
     }
 
@@ -30,63 +196,33 @@ export default function CreateRouteForm() {
 
     try {
       const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (position) => resolve(position),
-          (error) => reject(error),
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 60000, // Cache for 1 minute
-          }
-        );
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000,
+        });
       });
 
       const { latitude, longitude } = position.coords;
       const coordinates = `${latitude},${longitude}`;
 
-      console.log("📍 Current location obtained:", coordinates);
-
       setFormData({ ...formData, startingPoint: coordinates });
 
-      // Clear any existing error
       if (errors.startingPoint) {
         const newErrors = { ...errors };
         delete newErrors.startingPoint;
         setErrors(newErrors);
       }
 
-      // Show success feedback
-      const accuracy = Math.round(position.coords.accuracy);
-      alert(
-        `✅ Lokasi berhasil didapat!\n📍 ${coordinates}\n🎯 Akurasi: ±${accuracy}m`
-      );
+      alert(`Lokasi berhasil didapat: ${coordinates}`);
     } catch (error) {
-      console.error("Error getting location:", error);
-
-      let errorMessage = "Gagal mendapatkan lokasi. ";
-
-      switch (error.code) {
-        case error.PERMISSION_DENIED:
-          errorMessage +=
-            "Izin lokasi ditolak. Silakan aktifkan permission lokasi di browser.";
-          break;
-        case error.POSITION_UNAVAILABLE:
-          errorMessage += "Informasi lokasi tidak tersedia.";
-          break;
-        case error.TIMEOUT:
-          errorMessage += "Timeout mendapatkan lokasi. Silakan coba lagi.";
-          break;
-        default:
-          errorMessage += "Silakan isi koordinat secara manual.";
-      }
-
-      alert(`❌ ${errorMessage}`);
+      alert("Gagal mendapatkan lokasi. Silakan isi manual.");
     } finally {
       setGettingLocation(false);
     }
   };
 
-  // Validation functions
+  // Validation
   const validateCoordinates = (coords) => {
     if (!coords.trim()) return false;
     const parts = coords.split(",");
@@ -112,7 +248,7 @@ export default function CreateRouteForm() {
     }
 
     if (stores.length === 0) {
-      newErrors.stores = "Minimal tambahkan 1 toko untuk dikunjungi";
+      newErrors.stores = "Minimal tambahkan 1 toko";
     } else {
       stores.forEach((store, index) => {
         if (!store.storeName?.trim()) {
@@ -132,39 +268,28 @@ export default function CreateRouteForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
 
-    if (!validateForm()) {
-      return;
-    }
-
-    // Remove duplicate distributor IDs
+    // Remove duplicates
     const uniqueStores = [];
-    const seenDistributorIds = new Set();
+    const seenIds = new Set();
 
     stores.forEach((store) => {
-      const distId = store.distributorId?.trim();
-
-      if (!distId || distId === "0") {
+      const id = store.distributorId?.trim();
+      if (!id || id === "0") {
         uniqueStores.push(store);
-      } else if (!seenDistributorIds.has(distId)) {
-        seenDistributorIds.add(distId);
+      } else if (!seenIds.has(id)) {
+        seenIds.add(id);
         uniqueStores.push(store);
       }
     });
-
-    if (uniqueStores.length !== stores.length) {
-      alert(`${stores.length - uniqueStores.length} toko duplikat dihapus`);
-    }
 
     setLoading(true);
     try {
       const response = await fetch("/api/routes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          stores: uniqueStores,
-        }),
+        body: JSON.stringify({ ...formData, stores: uniqueStores }),
       });
 
       if (response.ok) {
@@ -175,7 +300,6 @@ export default function CreateRouteForm() {
         alert(`Gagal membuat rute: ${errorData.error}`);
       }
     } catch (error) {
-      console.error("Error creating route:", error);
       alert("Gagal membuat rute. Silakan coba lagi.");
     } finally {
       setLoading(false);
@@ -183,88 +307,42 @@ export default function CreateRouteForm() {
   };
 
   const addStore = () => {
-    const newStore = {
-      id: Date.now(),
-      distributorId: "",
-      storeName: "",
-      coordinates: "",
-      priority: "B",
-      visitTime: 30,
-    };
-    setStores([...stores, newStore]);
+    setStores([
+      ...stores,
+      {
+        id: Date.now(),
+        distributorId: "",
+        storeName: "",
+        coordinates: "",
+        priority: "B",
+        visitTime: 30,
+      },
+    ]);
   };
 
   const removeStore = (id) => {
     setStores(stores.filter((store) => store.id !== id));
-    setCollapsedStores((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(id);
-      return newSet;
-    });
-    // Clear related errors
-    const newErrors = { ...errors };
-    const index = stores.findIndex((store) => store.id === id);
-    delete newErrors[`store_${index}_name`];
-    delete newErrors[`store_${index}_coords`];
-    setErrors(newErrors);
   };
 
   const handleStoreChange = (updatedStore) => {
-    console.log("🔍 Parent received updated store:", updatedStore);
-
     setStores(
       stores.map((store) =>
         store.id === updatedStore.id ? updatedStore : store
       )
     );
-
-    // Clear errors for this store
-    const index = stores.findIndex((store) => store.id === updatedStore.id);
-    if (index >= 0) {
-      const newErrors = { ...errors };
-      delete newErrors[`store_${index}_name`];
-      delete newErrors[`store_${index}_coords`];
-      setErrors(newErrors);
-    }
   };
-
-  const toggleStoreCollapse = (id) => {
-    setCollapsedStores((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
-  // Separate completed and incomplete stores
-  const completedStores = stores.filter(
-    (store) =>
-      store.storeName &&
-      store.coordinates &&
-      (store.distributorId || store.distributorId === "0")
-  );
-  const incompleteStores = stores.filter(
-    (store) =>
-      !(
-        store.storeName &&
-        store.coordinates &&
-        (store.distributorId || store.distributorId === "0")
-      )
-  );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Route Info */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-lg font-semibold mb-4">Informasi Rute</h2>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+        {/* Route Info */}
+        <div className="bg-white rounded-lg p-4 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Informasi Rute
+          </h2>
 
-        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Tanggal Kunjungan
             </label>
             <input
@@ -274,88 +352,53 @@ export default function CreateRouteForm() {
               onChange={(e) =>
                 setFormData({ ...formData, routeDate: e.target.value })
               }
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Titik Mulai (Koordinat)
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Titik Mulai
             </label>
-
-            {/* Input with Get Location Button */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                required
-                placeholder="-7.2574719,112.7520883"
-                value={formData.startingPoint}
-                onChange={(e) => {
-                  setFormData({ ...formData, startingPoint: e.target.value });
-                  if (errors.startingPoint) {
-                    const newErrors = { ...errors };
-                    delete newErrors.startingPoint;
-                    setErrors(newErrors);
-                  }
-                }}
-                className={`flex-1 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.startingPoint ? "border-red-500" : "border-gray-300"
-                }`}
-              />
-
-              {/* Get Current Location Button */}
-              <button
-                type="button"
-                onClick={getCurrentLocation}
-                disabled={gettingLocation}
-                className="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors min-w-[140px] flex items-center justify-center gap-2"
-                title="Dapatkan lokasi saya saat ini"
-              >
-                {gettingLocation ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span className="hidden sm:inline">Getting...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    <span className="hidden sm:inline">Lokasi Saya</span>
-                    <span className="sm:hidden">📍</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {errors.startingPoint && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.startingPoint}
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  required
+                  placeholder="-7.2574719,112.7520883"
+                  value={formData.startingPoint}
+                  onChange={(e) => {
+                    setFormData({ ...formData, startingPoint: e.target.value });
+                    if (errors.startingPoint) {
+                      const newErrors = { ...errors };
+                      delete newErrors.startingPoint;
+                      setErrors(newErrors);
+                    }
+                  }}
+                  className={`flex-1 p-3 text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.startingPoint ? "border-red-500" : "border-gray-300"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={getCurrentLocation}
+                  disabled={gettingLocation}
+                  className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 min-w-[80px]"
+                >
+                  {gettingLocation ? "..." : "GPS"}
+                </button>
+              </div>
+              {errors.startingPoint && (
+                <p className="text-red-600 text-sm">{errors.startingPoint}</p>
+              )}
+              <p className="text-xs text-gray-500">
+                Format: latitude,longitude
               </p>
-            )}
-            <p className="text-xs text-gray-500 mt-1">
-              Format: latitude,longitude atau klik "Lokasi Saya" untuk otomatis
-            </p>
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Jam Berangkat
             </label>
             <input
@@ -367,80 +410,73 @@ export default function CreateRouteForm() {
               onChange={(e) =>
                 setFormData({ ...formData, departureTime: e.target.value })
               }
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Jam kerja: 09:00 - 17:00 (istirahat: 12:00 - 13:00)
+              Jam kerja: 09:00 - 17:00
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Smart Store List */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">
-            Daftar Toko
-            {stores.length > 0 && (
-              <span className="text-sm font-normal text-gray-600 ml-2">
-                ({completedStores.length} lengkap, {incompleteStores.length}{" "}
-                belum)
-              </span>
-            )}
-          </h2>
+        {/* Store List */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Daftar Toko ({stores.length})
+            </h2>
+            <button
+              type="button"
+              onClick={addStore}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+            >
+              + Tambah
+            </button>
+          </div>
+
+          {errors.stores && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-red-700 text-sm">{errors.stores}</p>
+            </div>
+          )}
+
+          {stores.length === 0 ? (
+            <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+              <p className="text-gray-500 mb-3">Belum ada toko</p>
+              <button
+                type="button"
+                onClick={addStore}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+              >
+                + Tambah Toko Pertama
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {stores.map((store, index) => (
+                <SimpleStoreInput
+                  key={store.id}
+                  store={store}
+                  index={index}
+                  onStoreChange={handleStoreChange}
+                  onRemove={() => removeStore(store.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Submit Button */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 -mx-4 px-4 py-4">
           <button
             type="button"
-            onClick={addStore}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+            onClick={handleSubmit}
+            disabled={loading || stores.length === 0}
+            className="w-full py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            + Tambah Toko
+            {loading ? "Membuat Rute..." : `Buat Rute (${stores.length} toko)`}
           </button>
         </div>
-
-        {errors.stores && (
-          <p className="text-red-500 text-sm mb-4">{errors.stores}</p>
-        )}
-
-        {stores.length === 0 ? (
-          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-gray-500 mb-2">Belum ada toko</p>
-            <p className="text-xs text-gray-400">
-              Klik "Tambah Toko" untuk mulai menambahkan toko
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {stores.map((store, index) => (
-              <SmartStoreInput
-                key={store.id}
-                store={store}
-                index={index}
-                isCollapsed={collapsedStores.has(store.id)}
-                onStoreChange={handleStoreChange}
-                onRemove={() => removeStore(store.id)}
-                onToggleCollapse={() => toggleStoreCollapse(store.id)}
-              />
-            ))}
-          </div>
-        )}
       </div>
-
-      {/* Submit Button */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <button
-          type="submit"
-          disabled={loading || stores.length === 0}
-          className="w-full touch-target bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {loading ? "Membuat Rute..." : `Buat Rute (${stores.length} toko)`}
-        </button>
-
-        {stores.length > 0 && (
-          <p className="text-xs text-gray-500 text-center mt-2">
-            Duplikat Distributor ID akan dihapus otomatis
-          </p>
-        )}
-      </div>
-    </form>
+    </div>
   );
 }

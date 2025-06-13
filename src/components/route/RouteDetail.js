@@ -5,176 +5,96 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function RouteDetail({ route }) {
+export default function EnhancedRouteDetail({ route }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
-  const [error, setError] = useState("");
 
   const handleOptimize = async () => {
     setOptimizing(true);
-    setError("");
 
     try {
-      console.log("🚀 Starting route optimization for route:", route.id);
-
       const response = await fetch(`/api/routes/${route.id}/optimize`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
-      console.log("📡 API Response status:", response.status);
-      console.log("📡 API Response ok:", response.ok);
-
-      // Get response text first to handle both JSON and HTML responses
       const responseText = await response.text();
-      console.log("📡 Raw response:", responseText.substring(0, 200) + "...");
-
       let data;
+
       try {
         data = JSON.parse(responseText);
       } catch (parseError) {
-        console.error("❌ Failed to parse JSON response:", parseError);
-        throw new Error(
-          `API returned non-JSON response: ${responseText.substring(0, 100)}`
-        );
+        throw new Error("Server error occurred");
       }
 
       if (response.ok && data.success) {
-        console.log("✅ Route optimized successfully");
-        console.log("📊 Optimization results:", data.optimization);
-
-        // Show success message with results
         const { summary } = data.optimization;
         alert(
-          `🎯 Rute berhasil dioptimalkan!\n\n` +
+          `Rute berhasil dioptimalkan!\n\n` +
             `✅ Toko dikunjungi: ${summary.visitedStores}\n` +
             `❌ Tidak terjangkau: ${summary.unreachableStores}\n` +
             `📏 Total jarak: ${summary.totalDistance} km\n` +
             `⏰ Selesai: ${summary.completionTime}`
         );
-
-        // Refresh the page to show updated results
         router.refresh();
       } else {
-        // Handle API errors
-        const errorMessage =
-          data.error || `HTTP ${response.status}: ${response.statusText}`;
-        console.error("❌ API Error:", errorMessage);
-
-        if (data.details) {
-          console.error("❌ Error details:", data.details);
-        }
-
-        throw new Error(errorMessage);
+        throw new Error(data.error || "Gagal mengoptimalkan rute");
       }
     } catch (error) {
-      console.error("💥 Error optimizing route:", error);
-      setError(error.message);
-
-      // Show user-friendly error message
-      let userMessage = "Gagal mengoptimalkan rute. ";
-
-      if (error.message.includes("Route not found")) {
-        userMessage += "Rute tidak ditemukan.";
-      } else if (error.message.includes("Unauthorized")) {
-        userMessage += "Sesi login sudah berakhir. Silakan login ulang.";
-      } else if (error.message.includes("already optimized")) {
-        userMessage += "Rute sudah dioptimalkan sebelumnya.";
-      } else if (error.message.includes("non-JSON response")) {
-        userMessage += "Terjadi error pada server. Silakan coba lagi.";
-      } else {
-        userMessage += "Silakan coba lagi dalam beberapa saat.";
-      }
-
-      alert(userMessage);
+      console.error("Error optimizing route:", error);
+      alert("Gagal mengoptimalkan rute. Silakan coba lagi.");
     } finally {
       setOptimizing(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm("⚠️ Yakin ingin menghapus rute ini?")) return;
+    if (!confirm("Yakin ingin menghapus rute ini?")) return;
 
     setLoading(true);
-    setError("");
-
     try {
       const response = await fetch(`/api/routes/${route.id}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
-        alert("✅ Rute berhasil dihapus");
+        alert("Rute berhasil dihapus");
         router.push("/dashboard");
       } else {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to delete route");
+        throw new Error("Gagal menghapus rute");
       }
     } catch (error) {
-      console.error("Error deleting route:", error);
-      alert("❌ Gagal menghapus rute. Silakan coba lagi.");
+      alert("Gagal menghapus rute. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusBadge = (status) => {
-    const badges = {
+  const getStatusColor = (status) => {
+    const colors = {
       DRAFT: "bg-gray-100 text-gray-800",
       OPTIMIZED: "bg-blue-100 text-blue-800",
       COMPLETED: "bg-green-100 text-green-800",
     };
-
-    const labels = {
-      DRAFT: "Draft",
-      OPTIMIZED: "Dioptimalkan",
-      COMPLETED: "Selesai",
-    };
-
-    return (
-      <span
-        className={`px-3 py-1 text-xs font-medium rounded-full ${
-          badges[status] || badges.DRAFT
-        }`}
-      >
-        {labels[status] || status}
-      </span>
-    );
+    return colors[status] || colors.DRAFT;
   };
 
-  const getStoreStatusBadge = (status) => {
-    const badges = {
-      PENDING: "bg-yellow-100 text-yellow-800",
-      VISITED: "bg-green-100 text-green-800",
-      UNREACHABLE: "bg-red-100 text-red-800",
-    };
-
+  const getStatusLabel = (status) => {
     const labels = {
-      PENDING: "Pending",
-      VISITED: "Dikunjungi",
-      UNREACHABLE: "Tidak Terjangkau",
+      DRAFT: "Belum Dioptimalkan",
+      OPTIMIZED: "Sudah Dioptimalkan",
+      COMPLETED: "Selesai",
     };
-
-    return (
-      <span
-        className={`px-2 py-1 text-xs font-medium rounded-full ${
-          badges[status] || badges.PENDING
-        }`}
-      >
-        {labels[status] || status}
-      </span>
-    );
+    return labels[status] || status;
   };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
       weekday: "long",
-      year: "numeric",
-      month: "long",
       day: "numeric",
+      month: "long",
+      year: "numeric",
     });
   };
 
@@ -186,335 +106,363 @@ export default function RouteDetail({ route }) {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Route Summary Card */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">
-              Rute {formatDate(route.routeDate)}
-            </h2>
-            <div className="flex items-center gap-3">
-              {getStatusBadge(route.status)}
-              <span className="text-sm text-gray-600">
-                {route.stores.length} toko
-              </span>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {route.status === "DRAFT" && (
-              <button
-                onClick={handleOptimize}
-                disabled={optimizing}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium min-w-[140px]"
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+        {/* Route Status Card */}
+        <div className="bg-white rounded-lg p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div
+                className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                  route.status
+                )}`}
               >
-                {optimizing ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Optimizing...
-                  </div>
-                ) : (
-                  "🎯 Optimalkan Rute"
-                )}
-              </button>
+                {getStatusLabel(route.status)}
+              </div>
+              <p className="text-lg font-semibold text-gray-900 mt-2">
+                {route.stores.length} Toko
+              </p>
+            </div>
+            {route.status === "OPTIMIZED" && (
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Total Jarak</p>
+                <p className="text-lg font-semibold text-blue-600">
+                  {route.totalDistance} km
+                </p>
+              </div>
             )}
-            <button
-              onClick={handleDelete}
-              disabled={loading || optimizing}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 text-sm"
-            >
-              {loading ? "Menghapus..." : "🗑️ Hapus"}
-            </button>
+          </div>
+
+          {/* Route Info */}
+          <div className="space-y-3 pt-3 border-t border-gray-100">
+            <div className="flex justify-between">
+              <span className="text-gray-600">📍 Titik Mulai:</span>
+              <span className="font-medium text-right">Lokasi Awal</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">🕘 Jam Berangkat:</span>
+              <span className="font-medium">{route.departureTime}</span>
+            </div>
+            {route.completionTime && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">⏰ Estimasi Selesai:</span>
+                <span className="font-medium">{route.completionTime}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-700 text-sm font-medium">❌ {error}</p>
-            {process.env.NODE_ENV === "development" && (
-              <details className="mt-2">
-                <summary className="cursor-pointer text-red-600 text-xs">
-                  Technical Details (Dev Only)
-                </summary>
-                <pre className="mt-1 text-xs text-red-600 overflow-auto">
-                  {error}
-                </pre>
-              </details>
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          {route.status === "DRAFT" && (
+            <button
+              onClick={handleOptimize}
+              disabled={optimizing}
+              className="w-full py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+            >
+              {optimizing ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Mengoptimalkan...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                  Optimalkan Rute
+                </>
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={handleDelete}
+            disabled={loading || optimizing}
+            className="w-full py-3 bg-red-100 text-red-700 font-medium rounded-lg hover:bg-red-200 disabled:bg-gray-100 disabled:text-gray-400 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                Menghapus...
+              </>
+            ) : (
+              <>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                Hapus Rute
+              </>
             )}
+          </button>
+        </div>
+
+        {/* Optimization Results */}
+        {route.status === "OPTIMIZED" && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-blue-900 mb-3">
+              📊 Hasil Optimasi
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600 mb-1">
+                  {visitedStores.length}
+                </div>
+                <div className="text-sm text-gray-600">Toko Dikunjungi</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600 mb-1">
+                  {unreachableStores.length}
+                </div>
+                <div className="text-sm text-gray-600">Tidak Terjangkau</div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Route Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">📍 Titik Mulai:</span>
-            <p className="font-medium">{route.startingPoint}</p>
-          </div>
-          <div>
-            <span className="text-gray-600">🕘 Berangkat:</span>
-            <p className="font-medium">{route.departureTime}</p>
-          </div>
-          {route.totalDistance && (
-            <>
-              <div>
-                <span className="text-gray-600">📏 Total Jarak:</span>
-                <p className="font-medium">{route.totalDistance} km</p>
-              </div>
-              <div>
-                <span className="text-gray-600">⏰ Estimasi Selesai:</span>
-                <p className="font-medium">{route.completionTime}</p>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Development Debug Info */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <h3 className="font-medium text-blue-800 mb-2">🔧 Debug Info</h3>
-          <div className="text-xs text-blue-700 space-y-1">
-            <p>
-              <strong>Route ID:</strong> {route.id}
-            </p>
-            <p>
-              <strong>Status:</strong> {route.status}
-            </p>
-            <p>
-              <strong>Stores:</strong> {route.stores.length}
-            </p>
-            <p>
-              <strong>Optimize URL:</strong> /api/routes/{route.id}/optimize
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Rest of the component continues with optimization results... */}
-      {/* (keeping the existing optimization results display code) */}
-
-      {/* Optimization Summary */}
-      {route.status === "OPTIMIZED" && (
-        <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">
-            📊 Hasil Optimasi
+        {/* Store List */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            {route.status === "DRAFT" ? "📝 Daftar Toko" : "🗺️ Rute Kunjungan"}
           </h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="text-center">
-              <p className="text-blue-700 mb-1">Toko Dikunjungi</p>
-              <p className="font-bold text-2xl text-green-600">
-                {visitedStores.length}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-blue-700 mb-1">Tidak Terjangkau</p>
-              <p className="font-bold text-2xl text-red-600">
-                {unreachableStores.length}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Show stores based on status */}
-      {route.status === "DRAFT" ? (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4">
-            📝 Daftar Toko ({route.stores.length})
-          </h3>
-          <div className="space-y-3">
-            {route.stores.map((store, index) => (
-              <div
-                key={store.id}
-                className="border border-gray-200 p-4 rounded-md"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="bg-gray-400 text-white text-xs px-2 py-1 rounded-full">
-                        #{index + 1}
-                      </span>
-                      <span className="font-medium">{store.storeName}</span>
-                      {getStoreStatusBadge(store.status)}
+          {/* Draft State - Simple List */}
+          {route.status === "DRAFT" && (
+            <div className="space-y-3">
+              {route.stores.map((store, index) => (
+                <div
+                  key={store.id}
+                  className="bg-white border border-gray-200 rounded-lg p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-gray-400 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                      {index + 1}
                     </div>
-                    <p className="text-sm text-gray-600">
-                      📍 {store.coordinates}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div
-                      className={`px-2 py-1 rounded text-xs mb-1 ${
-                        store.priority === "A"
-                          ? "bg-red-100 text-red-700"
-                          : store.priority === "B"
-                          ? "bg-orange-100 text-orange-700"
-                          : store.priority === "C"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      Priority {store.priority}
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      ⏱️ {store.visitTime} min
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800 flex items-center gap-2">
-              <span className="text-lg">💡</span>
-              <span>
-                <strong>Siap untuk dioptimalkan!</strong> Klik "Optimalkan Rute"
-                untuk mengurutkan toko berdasarkan jarak dan prioritas.
-              </span>
-            </p>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Visited Stores Route */}
-          {visitedStores.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                🗺️ Rute Kunjungan ({visitedStores.length} toko)
-              </h3>
-              <div className="space-y-4">
-                {visitedStores.map((store) => (
-                  <div
-                    key={store.id}
-                    className="border border-gray-200 p-4 rounded-md hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-blue-600 text-white text-sm px-3 py-1 rounded-full font-medium">
-                            #{store.visitOrder}
-                          </span>
-                          <span className="font-medium text-lg">
-                            {store.storeName}
-                          </span>
-                          {getStoreStatusBadge(store.status)}
-                        </div>
-                        <p className="text-sm text-gray-600 mb-2">
-                          📍 {store.coordinates}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div
-                          className={`px-2 py-1 rounded text-xs font-medium ${
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-1">
+                        {store.storeName}
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-2">
+                        📍 {store.coordinates}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span
+                          className={`px-2 py-1 rounded ${
                             store.priority === "A"
                               ? "bg-red-100 text-red-700"
                               : store.priority === "B"
                               ? "bg-orange-100 text-orange-700"
-                              : store.priority === "C"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-gray-100 text-gray-700"
+                              : "bg-yellow-100 text-yellow-700"
                           }`}
                         >
-                          Priority {store.priority}
-                        </div>
+                          Prioritas {store.priority}
+                        </span>
+                        <span>⏱️ {store.visitTime} menit</span>
                       </div>
                     </div>
-
-                    {/* Visit Times */}
-                    {store.arrivalTime && (
-                      <div className="grid grid-cols-3 gap-4 text-sm text-gray-600 mb-3">
-                        <div>
-                          <span className="block text-xs">Tiba:</span>
-                          <p className="font-medium text-gray-900">
-                            ⏰ {store.arrivalTime}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="block text-xs">Berangkat:</span>
-                          <p className="font-medium text-gray-900">
-                            🚗 {store.departTime}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="block text-xs">Durasi:</span>
-                          <p className="font-medium text-gray-900">
-                            ⏱️ {store.visitTime} min
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Google Maps Link */}
-                    {store.mapsUrl && (
-                      <div>
-                        <a
-                          href={store.mapsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full text-center bg-green-600 text-white py-3 rounded-md hover:bg-green-700 font-medium transition-colors"
-                        >
-                          🗺️ Navigasi di Google Maps
-                        </a>
-                      </div>
-                    )}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
+              ))}
 
-          {/* Unreachable Stores */}
-          {unreachableStores.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-lg font-semibold mb-4 text-red-700">
-                ⚠️ Toko Tidak Terjangkau ({unreachableStores.length})
-              </h3>
-              <div className="space-y-3">
-                {unreachableStores.map((store) => (
-                  <div
-                    key={store.id}
-                    className="border border-red-200 p-4 rounded-md bg-red-50"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{store.storeName}</span>
-                          {getStoreStatusBadge(store.status)}
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          📍 {store.coordinates}
-                        </p>
-                      </div>
-                      <div
-                        className={`px-2 py-1 rounded text-xs ${
-                          store.priority === "A"
-                            ? "bg-red-100 text-red-700"
-                            : store.priority === "B"
-                            ? "bg-orange-100 text-orange-700"
-                            : store.priority === "C"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        Priority {store.priority}
-                      </div>
-                    </div>
-                    <p className="text-xs text-red-600 mt-2">
-                      💡 Tidak dapat dikunjungi dalam jam kerja (09:00-17:00)
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="text-sm text-yellow-800">
-                  💡 <strong>Saran:</strong> Kunjungi toko ini di hari lain atau
-                  ubah prioritas rute
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-blue-800 text-sm text-center">
+                  💡 Klik "Optimalkan Rute" untuk mengurutkan toko berdasarkan
+                  jarak dan prioritas
                 </p>
               </div>
             </div>
           )}
-        </>
-      )}
+
+          {/* Optimized State - Visited Stores */}
+          {route.status === "OPTIMIZED" && visitedStores.length > 0 && (
+            <div className="space-y-3">
+              {visitedStores.map((store) => (
+                <div
+                  key={store.id}
+                  className="bg-white border border-gray-200 rounded-lg p-4"
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                      {store.visitOrder}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-1">
+                        {store.storeName}
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-2">
+                        📍 {store.coordinates}
+                      </p>
+
+                      {/* Visit Times */}
+                      {store.arrivalTime && (
+                        <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                          <div>
+                            <span className="text-gray-500">Tiba:</span>
+                            <div className="font-medium">
+                              ⏰ {store.arrivalTime}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Berangkat:</span>
+                            <div className="font-medium">
+                              🚗 {store.departTime}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-3 text-xs">
+                        <span
+                          className={`px-2 py-1 rounded ${
+                            store.priority === "A"
+                              ? "bg-red-100 text-red-700"
+                              : store.priority === "B"
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          Prioritas {store.priority}
+                        </span>
+                        <span className="text-gray-500">
+                          ⏱️ {store.visitTime} menit
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Navigation Button */}
+                  {store.mapsUrl && (
+                    <a
+                      href={store.mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-3 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                      Navigasi ke Toko
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Unreachable Stores */}
+          {route.status === "OPTIMIZED" && unreachableStores.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-lg font-semibold text-red-700 flex items-center gap-2">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+                Toko Tidak Terjangkau ({unreachableStores.length})
+              </h4>
+
+              {unreachableStores.map((store) => (
+                <div
+                  key={store.id}
+                  className="bg-red-50 border border-red-200 rounded-lg p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                      ✕
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-1">
+                        {store.storeName}
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-2">
+                        📍 {store.coordinates}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs">
+                        <span
+                          className={`px-2 py-1 rounded ${
+                            store.priority === "A"
+                              ? "bg-red-100 text-red-700"
+                              : store.priority === "B"
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          Prioritas {store.priority}
+                        </span>
+                        <span className="text-gray-500">
+                          ⏱️ {store.visitTime} menit
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded p-3">
+                    <p className="text-yellow-800 text-sm">
+                      💡 Tidak dapat dikunjungi dalam jam kerja (09:00-17:00).
+                      Pertimbangkan untuk dikunjungi di hari lain.
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Development Debug */}
+        {process.env.NODE_ENV === "development" && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <h4 className="font-medium text-blue-800 mb-2">🔧 Debug Info</h4>
+            <div className="text-xs text-blue-700 space-y-1">
+              <p>Route ID: {route.id}</p>
+              <p>Status: {route.status}</p>
+              <p>Stores: {route.stores.length}</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
