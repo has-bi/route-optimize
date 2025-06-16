@@ -1,10 +1,10 @@
-// src/app/dashboard/routes/page.js - All Routes Page
+// src/app/dashboard/routes/page.js - Fixed Navigation Links
 
 import { auth } from "../../../../auth.js";
 import { redirect } from "next/navigation";
 import { prisma } from "../../../lib/prisma.js";
 import RouteList from "../../../components/route/RouteList.js";
-import Link from "next/link";
+import Link from "next/link"; // ✅ FIXED: Correct import
 
 // Helper function to ensure user exists
 async function ensureUserExists(session) {
@@ -96,6 +96,7 @@ export default async function AllRoutesPage({ searchParams }) {
       {/* Header */}
       <header className="mb-6">
         <div className="flex items-center gap-4 mb-4">
+          {/* ✅ FIXED: Proper Link usage */}
           <Link
             href="/dashboard"
             className="p-2 hover:bg-gray-100 rounded-md transition-colors"

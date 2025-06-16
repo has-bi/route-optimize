@@ -1,8 +1,9 @@
-// ./src/app/dashboard/create/page.js
+// src/app/dashboard/create/page.js - Fixed Navigation Links
+
 import { auth } from "../../../../auth.js";
 import { redirect } from "next/navigation";
 import CreateRouteForm from "../../../components/route/CreateRouteForm.js";
-import { Link } from "lucide-react";
+import Link from "next/link"; // ✅ FIXED: Correct import
 
 export default async function CreateRoute() {
   const session = await auth();
@@ -15,6 +16,7 @@ export default async function CreateRoute() {
     <div className="container-mobile py-6">
       <header className="mb-6">
         <div className="flex items-center gap-4">
+          {/* ✅ FIXED: Proper Link usage with button inside */}
           <Link href="/dashboard" className="p-2 hover:bg-gray-100 rounded-md">
             <svg
               className="w-5 h-5"

@@ -1,9 +1,9 @@
-// src/app/dashboard/page.js - Enhanced Simple & Senior-Friendly Dashboard
+// src/app/dashboard/page.js - Fixed Navigation Links
 
 import { auth, signOut } from "../../../auth.js";
 import { redirect } from "next/navigation";
 import { prisma } from "../../lib/prisma.js";
-import Link from "next/link";
+import Link from "next/link"; // ✅ FIXED: Correct import
 
 // Helper function to ensure user exists
 async function ensureUserExists(session) {
@@ -294,6 +294,7 @@ export default async function Dashboard() {
           <p className="text-blue-100 mb-4 text-sm">
             Rencanakan kunjungan toko dengan mudah
           </p>
+          {/* ✅ FIXED: Proper Link usage */}
           <Link
             href="/dashboard/create"
             className="inline-block w-full py-3 bg-white text-blue-600 text-center font-semibold rounded-lg hover:bg-blue-50 transition-colors"

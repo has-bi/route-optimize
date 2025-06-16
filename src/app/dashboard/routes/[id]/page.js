@@ -1,10 +1,10 @@
-// src/app/dashboard/routes/[id]/page.js - COMPLETE REPLACEMENT
+// src/app/dashboard/routes/[id]/page.js - Fixed Navigation Links
 
 import { auth } from "../../../../../auth.js";
 import { redirect } from "next/navigation";
 import { prisma } from "../../../../lib/prisma.js";
 import RouteDetail from "../../../../components/route/RouteDetail.js";
-import { Link } from "lucide-react";
+import Link from "next/link"; // ✅ FIXED: Correct import
 
 // Ensure user exists in database (same logic as API routes)
 async function ensureUserExists(session) {
@@ -109,6 +109,7 @@ export default async function RouteDetailPage({ params }) {
       <div className="container-mobile py-6">
         <header className="mb-6">
           <div className="flex items-center gap-4">
+            {/* ✅ FIXED: Proper Link usage */}
             <Link
               href="/dashboard"
               className="p-2 hover:bg-gray-100 rounded-md transition-colors"

@@ -1,10 +1,10 @@
-// src/components/route/RouteDetail.js - Enhanced Error Handling
+// src/components/route/RouteDetail.js - Fixed Navigation Links
 
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Link } from "lucide-react";
+import Link from "next/link"; // ✅ FIXED: Correct import
 
 export default function EnhancedRouteDetail({ route }) {
   const router = useRouter();
