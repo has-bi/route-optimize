@@ -4,6 +4,7 @@ import { auth } from "../../../../../auth.js";
 import { redirect } from "next/navigation";
 import { prisma } from "../../../../lib/prisma.js";
 import RouteDetail from "../../../../components/route/RouteDetail.js";
+import { Link } from "lucide-react";
 
 // Ensure user exists in database (same logic as API routes)
 async function ensureUserExists(session) {
@@ -108,7 +109,7 @@ export default async function RouteDetailPage({ params }) {
       <div className="container-mobile py-6">
         <header className="mb-6">
           <div className="flex items-center gap-4">
-            <a
+            <Link
               href="/dashboard"
               className="p-2 hover:bg-gray-100 rounded-md transition-colors"
             >
@@ -125,7 +126,7 @@ export default async function RouteDetailPage({ params }) {
                   d="M15 19l-7-7 7-7"
                 />
               </svg>
-            </a>
+            </Link>
             <div>
               <h1 className="text-2xl font-bold">Detail Rute</h1>
               <p className="text-gray-600">
@@ -187,18 +188,18 @@ export default async function RouteDetailPage({ params }) {
           )}
 
           <div className="flex gap-3">
-            <a
+            <Link
               href="/dashboard"
               className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               ← Back to Dashboard
-            </a>
-            <a
+            </Link>
+            <Link
               href="/dashboard/create"
               className="inline-block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
             >
               + Create New Route
-            </a>
+            </Link>
           </div>
         </div>
       </div>

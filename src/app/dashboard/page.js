@@ -3,6 +3,7 @@
 import { auth, signOut } from "../../../auth.js";
 import { redirect } from "next/navigation";
 import { prisma } from "../../lib/prisma.js";
+import { Link } from "lucide-react";
 
 // Helper function to ensure user exists
 async function ensureUserExists(session) {
@@ -116,7 +117,7 @@ function SimpleRouteCard({ route }) {
   };
 
   return (
-    <a
+    <Link
       href={`/dashboard/routes/${route.id}`}
       className="block bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
     >
@@ -201,7 +202,7 @@ function SimpleRouteCard({ route }) {
           <span className="text-green-700">✅ Rute selesai dilaksanakan</span>
         </div>
       )}
-    </a>
+    </Link>
   );
 }
 
@@ -293,12 +294,12 @@ export default async function Dashboard() {
           <p className="text-blue-100 mb-4 text-sm">
             Rencanakan kunjungan toko dengan mudah
           </p>
-          <a
+          <Link
             href="/dashboard/create"
             className="inline-block w-full py-3 bg-white text-blue-600 text-center font-semibold rounded-lg hover:bg-blue-50 transition-colors"
           >
             + Buat Rute Baru
-          </a>
+          </Link>
         </div>
 
         {/* Status Overview - Only show if has routes */}
@@ -335,12 +336,12 @@ export default async function Dashboard() {
               {routes.length === 0 ? "Rute Anda" : "Rute Terbaru"}
             </h3>
             {hasMoreRoutes && (
-              <a
+              <Link
                 href="/dashboard/routes"
                 className="text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
                 Lihat Semua
-              </a>
+              </Link>
             )}
           </div>
 
@@ -369,12 +370,12 @@ export default async function Dashboard() {
                 Mulai dengan membuat rute pertama untuk mengoptimalkan kunjungan
                 toko
               </p>
-              <a
+              <Link
                 href="/dashboard/create"
                 className="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 + Buat Rute Pertama
-              </a>
+              </Link>
             </div>
           ) : (
             /* Routes List */
@@ -385,12 +386,12 @@ export default async function Dashboard() {
 
               {hasMoreRoutes && (
                 <div className="text-center pt-3">
-                  <a
+                  <Link
                     href="/dashboard/routes"
                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                   >
                     Lihat Semua Rute ({routes.length}) →
-                  </a>
+                  </Link>
                 </div>
               )}
             </div>

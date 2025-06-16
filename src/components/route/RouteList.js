@@ -96,13 +96,13 @@ export default function EnhancedRouteList({ routes, showAll = true }) {
           Mulai dengan membuat rute pertama untuk mengoptimalkan kunjungan toko
           Anda
         </p>
-        <a
+        <Link
           href="/dashboard/create"
           className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
         >
           <span className="text-xl">+</span>
           <span>Buat Rute Pertama</span>
-        </a>
+        </Link>
       </div>
     );
   }
@@ -202,7 +202,7 @@ export default function EnhancedRouteList({ routes, showAll = true }) {
       {/* Enhanced Routes List */}
       <div className="space-y-6">
         {filteredRoutes.map((route) => (
-          <a
+          <Link
             key={route.id}
             href={`/dashboard/routes/${route.id}`}
             className="block bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all p-6"
@@ -389,7 +389,7 @@ export default function EnhancedRouteList({ routes, showAll = true }) {
                 </div>
               </div>
             )}
-          </a>
+          </Link>
         ))}
       </div>
 

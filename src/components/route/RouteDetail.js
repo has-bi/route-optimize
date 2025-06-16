@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Link } from "lucide-react";
 
 export default function EnhancedRouteDetail({ route }) {
   const router = useRouter();
@@ -352,7 +353,7 @@ export default function EnhancedRouteDetail({ route }) {
 
                   {/* Navigation Button */}
                   {store.mapsUrl && (
-                    <a
+                    <Link
                       href={store.mapsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -378,7 +379,7 @@ export default function EnhancedRouteDetail({ route }) {
                         />
                       </svg>
                       Navigasi ke Toko
-                    </a>
+                    </Link>
                   )}
                 </div>
               ))}

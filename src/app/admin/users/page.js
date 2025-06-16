@@ -4,6 +4,7 @@ import { auth } from "../../../../auth.js";
 import { redirect } from "next/navigation";
 import { prisma } from "../../../lib/prisma.js";
 import { getUserAccessInfo } from "../../../../auth.js";
+import { Link } from "lucide-react";
 
 // Check if current user is admin
 async function checkAdminAccess(session) {
@@ -209,19 +210,19 @@ export default async function AdminUsersPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <a
+            <Link
               href="/api/health"
               target="_blank"
               className="px-4 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 text-sm font-medium transition-colors"
             >
               🩺 Health Check
-            </a>
-            <a
+            </Link>
+            <Link
               href="/dashboard"
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-medium transition-colors"
             >
               ← Back to Dashboard
-            </a>
+            </Link>
           </div>
         </div>
       </header>
