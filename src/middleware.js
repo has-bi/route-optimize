@@ -1,15 +1,23 @@
-import { auth } from "../auth.js";
+// src/middleware.js - PRAGMATIC SOLUTION: Import Edge-compatible config
 import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import { authConfig } from "../auth.config.js";
+
+// Create Edge-compatible auth function
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
-  const { pathname } = req.nextUrl;
+  const pathname = req.nextUrl.pathname;
   const isAuthenticated = !!req.auth;
-  const userEmail = req.auth?.user?.email;
+  const userEmail = req.auth?.user?.email || "none";
 
   console.log(
-    `🔐 Middleware: ${pathname} - Auth: ${isAuthenticated} - User: ${
-      userEmail || "none"
-    }`
+    "Middleware:",
+    pathname,
+    "Auth:",
+    isAuthenticated,
+    "User:",
+    userEmail
   );
 
   // Public routes
@@ -23,17 +31,16 @@ export default auth((req) => {
     "/api/health",
   ];
 
-  const isPublicRoute = publicRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
-
-  if (isPublicRoute) {
-    return NextResponse.next();
+  // Check public routes
+  for (const route of publicRoutes) {
+    if (pathname.startsWith(route)) {
+      return NextResponse.next();
+    }
   }
 
-  // Authentication check
+  // Check authentication
   if (!isAuthenticated) {
-    console.log(`❌ Unauthenticated access to: ${pathname}`);
+    console.log("Unauthenticated access to:", pathname);
 
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
@@ -47,12 +54,28 @@ export default auth((req) => {
     return NextResponse.redirect(signInUrl);
   }
 
-  // Admin routes access control
-  if (pathname.startsWith("/admin")) {
-    const isAdmin = req.auth?.user?.isAdmin;
+  // Get user info from JWT token
+  const userType = req.auth.user?.userType;
+  const isAdmin = req.auth.user?.isAdmin;
+  const isCompanyUser = req.auth.user?.isCompanyUser;
 
+  // Block unauthorized users
+  if (userType === "BLOCKED") {
+    console.log("Blocked user access:", userEmail);
+
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    return NextResponse.redirect(
+      new URL("/auth/error?error=AccessDenied", req.url)
+    );
+  }
+
+  // Admin routes
+  if (pathname.startsWith("/admin")) {
     if (!isAdmin) {
-      console.log(`🚫 Admin access denied for: ${userEmail} to ${pathname}`);
+      console.log("Admin access denied for:", userEmail);
 
       if (pathname.startsWith("/api/admin")) {
         return NextResponse.json(
@@ -67,12 +90,10 @@ export default auth((req) => {
     }
   }
 
-  // Company-specific routes
+  // Company routes
   if (pathname.startsWith("/api/stores") || pathname.startsWith("/api/debug")) {
-    const isCompanyUser = req.auth?.user?.isCompanyUser;
-
     if (!isCompanyUser) {
-      console.log(`🏢 Company access denied for: ${userEmail} to ${pathname}`);
+      console.log("Company access denied for:", userEmail);
       return NextResponse.json(
         { error: "Company access required" },
         { status: 403 }
@@ -80,16 +101,13 @@ export default auth((req) => {
     }
   }
 
-  // Add security headers
+  // Security headers
   const response = NextResponse.next();
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
-  if (userEmail) {
-    console.log(`✅ Access granted: ${userEmail} → ${pathname}`);
-  }
-
+  console.log("Access granted:", userEmail, "to", pathname);
   return response;
 });
 
