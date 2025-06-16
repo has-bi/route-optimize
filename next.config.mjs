@@ -41,9 +41,6 @@ const nextConfig = {
   // Disable strict mode if needed (optional)
   reactStrictMode: true,
 
-  // Enable SWC minification (default in Next.js 13+)
-  swcMinify: true,
-
   // Experimental features (only include what you need)
   experimental: {
     // Remove the deprecated serverComponentsExternalPackages

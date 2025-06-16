@@ -2,7 +2,9 @@
 
 "use client";
 
+import { Link } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function EnhancedRouteList({ routes, showAll = true }) {
   const [filter, setFilter] = useState("all");

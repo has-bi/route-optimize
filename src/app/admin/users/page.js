@@ -4,7 +4,8 @@ import { auth } from "../../../../auth.js";
 import { redirect } from "next/navigation";
 import { prisma } from "../../../lib/prisma.js";
 import { getUserAccessInfo } from "../../../../auth.js";
-import { Link } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 // Check if current user is admin
 async function checkAdminAccess(session) {
@@ -492,7 +493,7 @@ export default async function AdminUsersPage() {
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         {user.image ? (
-                          <img
+                          <Image
                             className="h-10 w-10 rounded-full object-cover"
                             src={user.image}
                             alt={user.name || user.email}

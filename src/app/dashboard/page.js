@@ -3,7 +3,7 @@
 import { auth, signOut } from "../../../auth.js";
 import { redirect } from "next/navigation";
 import { prisma } from "../../lib/prisma.js";
-import { Link } from "lucide-react";
+import Link from "next/link";
 
 // Helper function to ensure user exists
 async function ensureUserExists(session) {

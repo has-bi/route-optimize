@@ -4,6 +4,7 @@ import { auth } from "../../../../auth.js";
 import { redirect } from "next/navigation";
 import { prisma } from "../../../lib/prisma.js";
 import RouteList from "../../../components/route/RouteList.js";
+import Link from "next/link";
 
 // Helper function to ensure user exists
 async function ensureUserExists(session) {
@@ -95,7 +96,7 @@ export default async function AllRoutesPage({ searchParams }) {
       {/* Header */}
       <header className="mb-6">
         <div className="flex items-center gap-4 mb-4">
-          <a
+          <Link
             href="/dashboard"
             className="p-2 hover:bg-gray-100 rounded-md transition-colors"
           >
@@ -112,17 +113,17 @@ export default async function AllRoutesPage({ searchParams }) {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-          </a>
+          </Link>
           <div className="flex-1">
             <h1 className="text-2xl font-bold">Semua Rute</h1>
             <p className="text-gray-600">{routes.length} rute tersimpan</p>
           </div>
-          <a
+          <Link
             href="/dashboard/create"
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
           >
             + Buat Rute
-          </a>
+          </Link>
         </div>
 
         {/* Quick Stats */}
@@ -224,12 +225,12 @@ export default async function AllRoutesPage({ searchParams }) {
               >
                 🔍 Cari & Filter
               </button>
-              <a
+              <Link
                 href="/dashboard/routes"
                 className="px-4 py-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 font-medium transition-colors"
               >
                 Reset
-              </a>
+              </Link>
             </div>
           </form>
         </div>
