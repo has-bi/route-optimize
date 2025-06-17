@@ -324,7 +324,7 @@ export default function EnhancedRouteDetail({ route }) {
                             </div>
                           </div>
                           <div>
-                            <span className="text-gray-500">Berangkat:</span>
+                            <span className="text-gray-500">Selesai:</span>
                             <div className="font-medium">
                               🚗 {store.departTime}
                             </div>

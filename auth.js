@@ -18,7 +18,7 @@ export async function getUserAccessInfo(email) {
   const cleanEmail = email.toLowerCase().trim();
 
   if (cleanEmail.endsWith("@youvit.co.id")) {
-    const adminEmails = ["admin@youvit.co.id", "cto@youvit.co.id"];
+    const adminEmails = ["bi@youvit.co.id", "hasbi@youvit.co.id"];
     return {
       allowed: true,
       userType: "COMPANY",

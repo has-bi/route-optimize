@@ -29,7 +29,7 @@ export default function SignIn() {
               Route Optimizer
             </h1>
             <p className="text-gray-600">
-              Login untuk mengoptimalkan rute kunjungan toko Anda
+              Login untuk mengoptimalkan rute kunjungan toko
             </p>
           </div>
 
@@ -86,7 +86,7 @@ export default function SignIn() {
             <div className="flex items-start gap-2">
               <span className="text-orange-600 font-medium">📧</span>
               <span>
-                Hubungi <strong>admin@youvit.co.id</strong> untuk akses
+                Hubungi <strong>hasbi@youvit.co.id</strong> untuk akses
               </span>
             </div>
           </div>
@@ -94,7 +94,7 @@ export default function SignIn() {
 
         {/* Footer */}
         <div className="mt-6 text-center text-xs text-gray-500">
-          <p>© 2024 YouVit Route Optimizer</p>
+          <p>© 2025 Youvit Route Optimizer</p>
           <p>Secure authentication powered by Google OAuth</p>
         </div>
       </div>

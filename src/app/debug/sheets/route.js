@@ -5,7 +5,7 @@ import {
   getSheetStats,
 } from "../../../lib/google-sheets.js";
 
-// GET /api/debug/sheets - Debug YouVit sheet integration
+// GET /api/debug/sheets - Debug Youvit sheet integration
 export async function GET() {
   try {
     const session = await auth();
@@ -38,10 +38,10 @@ export async function GET() {
         userType: session.user.userType,
         isCompanyUser: session.user.isCompanyUser,
       },
-      message: "YouVit master data integration working correctly",
+      message: "Youvit master data integration working correctly",
     });
   } catch (error) {
-    console.error("💥 YouVit sheets debug error:", error);
+    console.error("💥 Youvit sheets debug error:", error);
     return NextResponse.json(
       {
         success: false,
