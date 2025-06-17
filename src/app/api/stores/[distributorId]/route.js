@@ -6,22 +6,25 @@ import { getStoreByDistributorId } from "../../../../lib/google-sheets.js";
 export async function GET(request, { params }) {
   try {
     const session = await auth();
-    if (!session?.user?.isCompanyUser) {
+
+    // FIXED: Allow all authenticated users (company + whitelisted external)
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // FIX: Await params in Next.js 15
+    console.log("👤 User accessing stores API:", session.user.email);
+
     const { distributorId } = await params;
-    console.log("Looking for distributor ID:", distributorId);
+    console.log("🔍 Looking for distributor ID:", distributorId);
 
     const store = await getStoreByDistributorId(distributorId);
 
     if (!store) {
-      console.log("Store not found for ID:", distributorId);
+      console.log("❌ Store not found for ID:", distributorId);
       return NextResponse.json({ error: "Store not found" }, { status: 404 });
     }
 
-    console.log("Found store data:", {
+    console.log("✅ Found store data:", {
       distributorId: store.distributorId,
       storeName: store.storeName,
       coordinates: store.coordinates,
@@ -30,7 +33,7 @@ export async function GET(request, { params }) {
 
     return NextResponse.json({ store });
   } catch (error) {
-    console.error("Error getting store by distributor ID:", error);
+    console.error("💥 Error getting store by distributor ID:", error);
     return NextResponse.json(
       { error: "Failed to fetch store", details: error.message },
       { status: 500 }

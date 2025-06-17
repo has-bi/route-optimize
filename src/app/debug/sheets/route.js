@@ -9,11 +9,16 @@ import {
 export async function GET() {
   try {
     const session = await auth();
-    if (!session?.user?.isCompanyUser) {
+
+    // FIXED: Allow all authenticated users for debugging
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("Debug: Testing Google Sheets connection...");
+    console.log(
+      "🔧 Debug: Testing Google Sheets connection for:",
+      session.user.email
+    );
 
     const stores = await getStoresFromSheet();
     const stats = await getSheetStats();
@@ -21,7 +26,6 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       stats,
-      sampleStores: stores.slice(0, 5), // First 5 stores as sample
       distributorIds: stores.slice(0, 10).map((s) => s.distributorId), // Show distributor IDs for testing
       environment: {
         hasServiceEmail: !!process.env.GOOGLE_SERVICE_EMAIL,
@@ -29,10 +33,15 @@ export async function GET() {
         hasSheetId: !!process.env.MASTER_DATA_SHEET_ID,
         sheetId: process.env.MASTER_DATA_SHEET_ID,
       },
+      userInfo: {
+        email: session.user.email,
+        userType: session.user.userType,
+        isCompanyUser: session.user.isCompanyUser,
+      },
       message: "YouVit master data integration working correctly",
     });
   } catch (error) {
-    console.error("YouVit sheets debug error:", error);
+    console.error("💥 YouVit sheets debug error:", error);
     return NextResponse.json(
       {
         success: false,
@@ -43,6 +52,9 @@ export async function GET() {
           hasServiceKey: !!process.env.GOOGLE_SERVICE_KEY,
           hasSheetId: !!process.env.MASTER_DATA_SHEET_ID,
           sheetId: process.env.MASTER_DATA_SHEET_ID,
+        },
+        userInfo: {
+          email: session?.user?.email || "none",
         },
       },
       { status: 500 }

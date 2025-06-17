@@ -1,4 +1,3 @@
-// src/middleware.js - PRAGMATIC SOLUTION: Import Edge-compatible config
 import { NextResponse } from "next/server";
 import NextAuth from "next-auth";
 import { authConfig } from "../auth.config.js";
@@ -12,7 +11,7 @@ export default auth((req) => {
   const userEmail = req.auth?.user?.email || "none";
 
   console.log(
-    "Middleware:",
+    "🔒 Middleware:",
     pathname,
     "Auth:",
     isAuthenticated,
@@ -40,7 +39,7 @@ export default auth((req) => {
 
   // Check authentication
   if (!isAuthenticated) {
-    console.log("Unauthenticated access to:", pathname);
+    console.log("❌ Unauthenticated access to:", pathname);
 
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
@@ -61,7 +60,7 @@ export default auth((req) => {
 
   // Block unauthorized users
   if (userType === "BLOCKED") {
-    console.log("Blocked user access:", userEmail);
+    console.log("🚫 Blocked user access:", userEmail);
 
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
@@ -72,10 +71,10 @@ export default auth((req) => {
     );
   }
 
-  // Admin routes
+  // Admin routes (only for admins)
   if (pathname.startsWith("/admin")) {
     if (!isAdmin) {
-      console.log("Admin access denied for:", userEmail);
+      console.log("🔐 Admin access denied for:", userEmail);
 
       if (pathname.startsWith("/api/admin")) {
         return NextResponse.json(
@@ -90,15 +89,11 @@ export default auth((req) => {
     }
   }
 
-  // Company routes
+  // UPDATED: Stores and debug APIs - allow all authenticated users
+  // Remove the company-only restriction since both company and whitelisted external users should have access
   if (pathname.startsWith("/api/stores") || pathname.startsWith("/api/debug")) {
-    if (!isCompanyUser) {
-      console.log("Company access denied for:", userEmail);
-      return NextResponse.json(
-        { error: "Company access required" },
-        { status: 403 }
-      );
-    }
+    // All authenticated users can access these APIs
+    console.log("✅ Stores/Debug API access granted for:", userEmail);
   }
 
   // Security headers
@@ -107,7 +102,7 @@ export default auth((req) => {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
-  console.log("Access granted:", userEmail, "to", pathname);
+  console.log("✅ Access granted:", userEmail, "to", pathname);
   return response;
 });
 

@@ -6,13 +6,17 @@ import {
   getSheetStats,
 } from "../../../lib/google-sheets.js";
 
-// GET /api/stores - Get stores with YouVit-specific filtering
+// GET /api/stores - Get stores with improved permission check
 export async function GET(request) {
   try {
     const session = await auth();
-    if (!session?.user?.isCompanyUser) {
+
+    // FIXED: Allow all authenticated users
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.log("👤 User accessing stores search:", session.user.email);
 
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q");
@@ -20,7 +24,7 @@ export async function GET(request) {
     const storeType = searchParams.get("type");
     const stats = searchParams.get("stats") === "true";
 
-    console.log("Stores API called with params:", {
+    console.log("🔍 Stores API called with params:", {
       query,
       region,
       storeType,
@@ -50,7 +54,7 @@ export async function GET(request) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Error in YouVit stores API:", error);
+    console.error("💥 Error in stores API:", error);
     return NextResponse.json(
       { error: "Failed to fetch stores", details: error.message },
       { status: 500 }

@@ -37,9 +37,9 @@ async function getSheetsClient() {
   }
 }
 
-// Transform YouVit raw data to our standardized format (Simplified with debugging)
+// Transform YouVit raw data to our standardized format
 function transformYouVitData(row) {
-  // Your sheet columns:
+  // sheet columns:
   // A=rank, B=outlet_id, C=distributor_id, D=outlet_name, E=outlet_types,
   // F=sales_types, G=sales_value_l1m, H=sales_value_l3m, I=sales_value_l6m,
   // J=avg_minutes_per_visit, K=productivity, L=area, M=region, N=subzone,
@@ -53,11 +53,6 @@ function transformYouVitData(row) {
   const latitude = parseFloat(row[14]) || 0; // Column O
   const longitude = parseFloat(row[15]) || 0; // Column P
 
-  // Debug logging
-  console.log("Transforming row for distributor:", distributorId);
-  console.log("Raw outlet_name (column D):", outletName);
-  console.log("Raw coordinates - lat:", latitude, "lng:", longitude);
-
   // Build coordinates string
   const coordinates = latitude && longitude ? `${latitude},${longitude}` : "";
 
@@ -70,8 +65,8 @@ function transformYouVitData(row) {
     storeName: outletName, // This should be the outlet_name from column D
     storeAddress: `${area}, ${region}`.replace(/^,\s*|,\s*$/g, ""), // Clean up empty parts
     coordinates,
-    priority: "B", // Default priority - user can change manually
-    visitTime: 30, // Default 30 minutes - user can change manually
+    priority: "B",
+    visitTime: 30,
     status,
     storeType: outletTypes,
     region,
@@ -81,13 +76,6 @@ function transformYouVitData(row) {
   console.log("Transformed store:", transformedStore);
   return transformedStore;
 }
-
-// Remove complex calculation functions - keep it simple
-// Calculate priority based on sales and productivity
-// function calculatePriority(salesL3m, productivity) { ... } // REMOVED
-
-// Calculate visit time based on actual data and outlet type
-// function calculateVisitTime(avgMinutes, outletType) { ... } // REMOVED
 
 // Validate coordinates (Indonesia bounds check)
 function isValidIndonesianCoordinates(coordinates) {
@@ -257,9 +245,6 @@ export async function getStoresByRegion(region) {
     throw new Error("Failed to get stores by region");
   }
 }
-
-// Remove high-value stores function - not needed
-// export async function getHighValueStores() { ... } // REMOVED
 
 // Get simplified sheet statistics
 export async function getSheetStats() {
